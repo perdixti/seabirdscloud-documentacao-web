@@ -1,0 +1,6 @@
+# Copie para /etc/seabirds/code-server.yaml e troque a senha antes de iniciar.
+bind-addr: 127.0.0.1:8765
+auth: password
+password: TROQUE-POR-UMA-SENHA-LONGA-E-EXCLUSIVA
+cert: false
+disable-telemetry: true

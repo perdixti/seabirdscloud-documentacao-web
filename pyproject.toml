@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seabirds-docs"
+version = "2.4.0"
+description = "Editor e gerador de documentação SeaBirdsCloud"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "markdown-it-py>=4,<5",
+  "python-multipart>=0.0.20,<1", "pillow>=11,<14",
+  "beautifulsoup4>=4.13,<5",
+  "Markdown>=3.7,<4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "httpx>=0.28,<1", "ruff>=0.11,<1", "build>=1,<2"]
+
+[project.scripts]
+seabirds = "seabirds.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["seabirds*"]
+
+[tool.setuptools.package-data]
+seabirds = ["static/*", "templates/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+exclude = ["legacy", "app_ui.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]

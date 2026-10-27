@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="robots" content="index, follow">
+    <meta name="description" content="Perdix é um hub de inovação tecnológica com projetos criativos e soluções digitais. Explore nossas competências e projetos.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qualquer</title>
+    <link rel="icon" href="../../imagens/estilizacao/icone.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.0/css/all.min.css">
+    <link rel="stylesheet" href="../../css/styles.css">
+
+</head>
+<body>
+    <header>
+        <div class="logo-nome">
+            <h1>Perdix</h1>
+            <a href="../../index.html">
+                <div class="logo-wrapper">
+                    <img src="../../imagens/estilizacao/logo.png" alt="Logo do site">
+                </div>
+            </a>
+        </div>
+        <div class="menu-e-switch">
+            <nav>
+                <ul>
+                    <li><a href="../../index.html">Home</a></li>
+                    <li><a href="../../paginas/sobre.html">Sobre</a></li>
+                    <li><a href="../../paginas/competencias.html">Competências</a></li>
+                    <li><a href="../../paginas/projetos.html">Projetos</a></li>
+                </ul>
+            </nav>
+            <label class="switch">
+                <input type="checkbox" id="toggle-dark-mode">
+                <span class="slider">
+                  <i id="dark-icon" class="fas fa-moon"></i>
+                </span>
+            </label>
+        </div>
+    </header>
+
+    <main>      
+        <section class="texto" id="textoSelecionavel">
+            {{content}}
+        <button id="btnPerguntar">Perguntar sobre</button>
+        </section>
+    </main>
+    <footer>
+        <div class="contatos-footer">
+            <a href="https://www.linkedin.com/in/lucas-perdigão-de-oliveira-963260249" target="_blank">
+                <i class="fa-brands fa-linkedin" ></i></a>
+            <a href="https://github.com/LucasPerolive" target="_blank"><i class="fa-brands fa-github"></i></a>
+            <a href="https://www.instagram.com/lucasperdigao97/" target="_blank"><i class="fa-brands fa-instagram"></i></a>
+            <a href="mailto:lucaspolivira@gmail.com" target="_blank"><i class="fa-solid fa-envelope"></i></a>
+        </div>
+    </footer>
+    <script src="../../js/fullscreen.js">
+	</script>
+	<script src="../../js/darkmod.js">
+	</script>
+	<script src="../../js/animacao-index.js">
+	</script>
+	<script src="../../js/card-copy.js">
+	</script>
+	<div id="imagemModal" style="display:none;">
+	 <span aria-label="Fechar" id="fecharModal">
+		<svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24">
+		 <line x1="18" x2="6" y1="6" y2="18">
+		 </line>
+		 <line x1="6" x2="18" y1="6" y2="18">
+		 </line>
+		</svg>
+	 </span>
+	 <div id="modalConteudo">
+		<img alt="" id="imagemExpandida" src=""/>
+	 </div>
+	</div>
+
+    <!-- Chatbot -->
+    <!-- Botão flutuante -->
+    <button id="chatFab">
+        <svg viewBox="0 0 24 24" class="icon">
+            <path d="M12 2c-2.5 0-4.5 2-4.5 4.5S9.5 11 12 11s4.5-2 4.5-4.5S14.5 2 12 2zm0 11c-3.3 0-7 1.7-7 4v3h14v-3c0-2.3-3.7-4-7-4z"/>
+        </svg>
+    </button>
+
+    <!-- Painel do chat -->
+    <div id="chatPanel">
+        <div id="chatHeader">
+            <span>Perdix AI</span>
+            <button id="closeBtn"
+                style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;">✕</button>
+        </div>
+        <div id="chatBody"></div>
+        <form id="chatForm">
+            <textarea id="chatInput" placeholder="Digite sua pergunta..." rows="1"></textarea>
+            <button type="submit">></button>
+        </form>
+    </div>
+    <script src="../../js/chatbot.js"></script>
+    <script src="../../js/posicao-botao-chatbot.js"></script>
+    <script src="../../js/dimensao-chatbot.js"></script>
+    <script src="../../js/botao-duvida-chatbot.js"></script>
+    <!-- === Fim do Chatbot === -->
+</body>
+</html>

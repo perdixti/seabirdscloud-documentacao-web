@@ -1,0 +1,26 @@
+[Unit]
+Description=SeaBirdsCloud Documentation Studio
+After=network.target
+
+[Service]
+Type=simple
+User=seabirds
+Group=seabirds
+WorkingDirectory=/opt/seabirds/app
+EnvironmentFile=/etc/seabirds/seabirds.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/seabirds/venv/bin/python -m seabirds
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/seabirds /srv/seabirds
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

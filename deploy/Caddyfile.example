@@ -1,0 +1,5 @@
+# Exemplo: Caddy em uma VM/proxy separado com acesso ao IP do LXC.
+# Substitua docs.exemplo.com e 192.168.1.50 pelos valores do seu ambiente.
+docs.exemplo.com {
+    reverse_proxy 192.168.1.50:8000
+}

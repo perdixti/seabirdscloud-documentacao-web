@@ -1,0 +1,23 @@
+[Unit]
+Description=Editor Web dos arquivos locais SeaBirdsCloud
+After=network.target
+
+[Service]
+Type=simple
+User=seabirds
+Group=seabirds
+WorkingDirectory=/srv/seabirds
+Environment=HOME=/var/lib/seabirds
+ExecStart=/usr/bin/code-server --config /etc/seabirds/code-server.yaml --user-data-dir /var/lib/seabirds/code-server /srv/seabirds
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/seabirds /srv/seabirds
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

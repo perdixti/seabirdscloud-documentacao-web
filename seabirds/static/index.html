@@ -1,0 +1,1019 @@
+<!doctype html>
+
+<html data-theme="light" lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width,initial-scale=1" name="viewport" />
+    <meta content="light dark" name="color-scheme" />
+    <title>SeaBirdsCloud — Gerador de HTML</title>
+    <link href="/static/styles.css" rel="stylesheet" />
+    <link href="/static/studio.css" rel="stylesheet" />
+    <script src="/static/app.js" type="module"></script>
+  </head>
+  <body>
+    <svg
+      aria-hidden="true"
+      class="icon-defs"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <symbol id="icon-edit" viewbox="0 0 24 24">
+        <path d="m16 3 5 5-12 12-6 1 1-6Z"></path>
+        <path d="m14 5 5 5"></path>
+      </symbol>
+      <symbol id="icon-replace" viewbox="0 0 24 24">
+        <path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"></path>
+      </symbol>
+      <symbol id="icon-code" viewbox="0 0 24 24">
+        <path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-16-2 20"></path>
+      </symbol>
+      <symbol id="icon-book" viewbox="0 0 24 24">
+        <path
+          d="M3 4h6a4 4 0 0 1 3 2 4 4 0 0 1 3-2h6v16h-6a4 4 0 0 0-3 2 4 4 0 0 0-3-2H3Z"
+        ></path>
+        <path d="M12 6v16"></path>
+      </symbol>
+      <symbol id="icon-plus" viewbox="0 0 24 24">
+        <path d="M12 5v14M5 12h14"></path>
+      </symbol>
+      <symbol id="icon-history" viewbox="0 0 24 24">
+        <path d="M3 11a9 9 0 1 1 2 7M3 4v7h7m2-5v6l4 2"></path>
+      </symbol>
+      <symbol id="icon-clock" viewbox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M12 7v5l3 2"></path>
+      </symbol>
+      <symbol id="icon-settings" viewbox="0 0 24 24">
+        <path
+          d="m9 3-1 3-3 1v3l-2 2 2 2v3l3 1 1 3h6l1-3 3-1v-3l2-2-2-2V7l-3-1-1-3Z"
+        ></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </symbol>
+      <symbol id="icon-theme" viewbox="0 0 24 24">
+        <path d="M20 14a8 8 0 0 1-10-10 9 9 0 1 0 10 10Z"></path>
+      </symbol>
+      <symbol id="icon-download" viewbox="0 0 24 24">
+        <path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"></path>
+      </symbol>
+      <symbol id="icon-external" viewbox="0 0 24 24">
+        <path d="M14 3h7v7m0-7L10 14M10 3H3v18h18v-7"></path>
+      </symbol>
+      <symbol id="icon-arrow" viewbox="0 0 24 24">
+        <path d="M4 12h16m-6-6 6 6-6 6"></path>
+      </symbol>
+      <symbol id="icon-folder" viewbox="0 0 24 24">
+        <path d="M3 7V4h6l2 3h10v13H3Z"></path>
+      </symbol>
+      <symbol id="icon-file" viewbox="0 0 24 24">
+        <path d="M14 3H5v18h14V8Zm0 0v5h5M8 13h8m-8 4h6"></path>
+      </symbol>
+      <symbol id="icon-image" viewbox="0 0 24 24">
+        <rect height="18" rx="3" width="18" x="3" y="3"></rect>
+        <circle cx="8" cy="8" r="1.5"></circle>
+        <path d="m21 15-5-5-7 8-3-3-3 4"></path>
+      </symbol>
+      <symbol id="icon-split" viewbox="0 0 24 24">
+        <rect height="16" rx="2" width="18" x="3" y="4"></rect>
+        <path d="M12 4v16"></path>
+      </symbol>
+      <symbol id="icon-expand" viewbox="0 0 24 24">
+        <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"></path>
+      </symbol>
+      <symbol id="icon-search" viewbox="0 0 24 24">
+        <circle cx="10" cy="10" r="6"></circle>
+        <path d="m15 15 6 6"></path>
+      </symbol>
+      <symbol id="icon-undo" viewbox="0 0 24 24">
+        <path d="M3 10h11a6 6 0 0 1 0 12M3 10l5-5m-5 5 5 5"></path>
+      </symbol>
+      <symbol id="icon-redo" viewbox="0 0 24 24">
+        <path d="M21 10H10a6 6 0 0 0 0 12m11-12-5-5m5 5-5 5"></path>
+      </symbol>
+      <symbol id="icon-trash" viewbox="0 0 24 24">
+        <path d="M3 6h18M9 6V3h6v3m-10 0 1 15h12l1-15M10 10v7m4-7v7"></path>
+      </symbol>
+      <symbol id="icon-move" viewbox="0 0 24 24">
+        <path
+          d="M12 2v20M2 12h20m-10-10-3 3m3-3 3 3m-3 17-3-3m3 3 3-3M2 12l3-3m-3 3 3 3m17-3-3-3m3 3-3 3"
+        ></path>
+      </symbol>
+      <symbol id="icon-close" viewbox="0 0 24 24">
+        <path d="m6 6 12 12M6 18 18 6"></path>
+      </symbol>
+      <symbol id="icon-link" viewbox="0 0 24 24">
+        <path
+          d="m10 13 4-4m-5 7-2 2a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m2 0 2-2a4 4 0 0 1 6 6l-4 4a4 4 0 0 1-6 0"
+        ></path>
+      </symbol>
+      <symbol id="icon-table" viewbox="0 0 24 24">
+        <rect height="16" rx="2" width="18" x="3" y="4"></rect>
+        <path d="M3 9h18M3 14h18M9 4v16m6-16v16"></path>
+      </symbol>
+      <symbol id="icon-check" viewbox="0 0 24 24">
+        <path d="m5 12 4 4L20 5"></path>
+      </symbol>
+      <symbol id="icon-chevron" viewbox="0 0 24 24">
+        <path d="m9 5 7 7-7 7"></path>
+      </symbol>
+      <symbol id="icon-upload" viewbox="0 0 24 24">
+        <path d="M12 16V3m-5 5 5-5 5 5M4 16v5h16v-5"></path>
+      </symbol>
+    </svg>
+    <aside class="app-sidebar">
+      <div class="brand">
+        <span class="brand-mark"
+          ><svg aria-hidden="true" viewbox="0 0 32 32">
+            <path
+              d="M5 20 16 7l-2 12L28 9 19 27Z"
+              fill="currentColor"
+            ></path></svg
+        ></span>
+        <div>
+          <strong>SeaBirdsCloud</strong><small>DOCUMENTAÇÃO HTML</small>
+        </div>
+      </div>
+      <button class="new-document" id="new-project">
+        <svg aria-hidden="true" class="icon"><use href="#icon-plus"></use></svg
+        ><span>Nova documentação</span>
+      </button>
+      <div class="nav-caption">ESPAÇO DE TRABALHO</div>
+      <nav aria-label="Ferramentas" class="app-tabs">
+        <button class="active" data-tab="editor-tab">
+          <svg aria-hidden="true" class="icon">
+            <use href="#icon-edit"></use></svg
+          ><span>Editor HTML</span></button
+        ><button data-tab="site-tab">
+          <svg aria-hidden="true" class="icon">
+            <use href="#icon-folder"></use></svg
+          ><span>Site e repositórios</span></button
+        ><button data-tab="replace-tab">
+          <svg aria-hidden="true" class="icon">
+            <use href="#icon-replace"></use></svg
+          ><span>Substituir texto</span></button
+        ><button data-tab="format-tab">
+          <svg aria-hidden="true" class="icon">
+            <use href="#icon-code"></use></svg
+          ><span>Formatar HTML</span></button
+        ><button data-tab="manual-tab">
+          <svg aria-hidden="true" class="icon">
+            <use href="#icon-book"></use></svg
+          ><span>Manual de uso</span>
+        </button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button id="all-history">
+          <svg aria-hidden="true" class="icon">
+            <use href="#icon-history"></use></svg
+          ><span>Projetos anteriores</span></button
+        ><button id="history-settings">
+          <svg aria-hidden="true" class="icon">
+            <use href="#icon-clock"></use></svg
+          ><span>Ajustes de histórico</span>
+        </button>
+        <div class="sidebar-note">
+          <span class="connection-dot"></span
+          ><span id="environment-label">Seu espaço de documentação</span
+          ><small>SeaBirdsCloud · Gerador HTML</small>
+        </div>
+      </div>
+    </aside>
+    <div class="app-main">
+      <header class="app-header">
+        <div class="breadcrumb">
+          Workspace <span>/</span
+          ><strong id="active-screen">Editor HTML</strong>
+        </div>
+        <div class="header-actions">
+          <button
+            data-open-settings="template-path"
+            id="open-settings"
+            aria-label="Configurar arquivos"
+          >
+            <svg aria-hidden="true" class="icon">
+              <use href="#icon-settings"></use></svg
+            ><span>Configurar arquivos</span></button
+          ><span class="header-divider"></span
+          ><button
+            aria-label="Alternar tema"
+            class="icon-button"
+            id="theme"
+            title="Alternar tema"
+          >
+            <svg aria-hidden="true" class="icon">
+              <use href="#icon-theme"></use>
+            </svg>
+          </button>
+          <details class="mobile-workspace-menu">
+            <summary aria-label="Mais ações" title="Mais ações">⋯</summary>
+            <div>
+              <button data-workspace-action="new-project">
+                Nova documentação
+              </button>
+              <button data-workspace-action="all-history">
+                Projetos anteriores
+              </button>
+              <button data-workspace-action="history-settings">
+                Ajustes de histórico
+              </button>
+            </div>
+          </details>
+        </div>
+      </header>
+      <main>
+        <section class="tab-page" id="editor-tab">
+          <div class="workspace-intro">
+            <div class="document-title">
+              <div class="eyebrow">SEU CONTEÚDO. SEU TEMPLATE.</div>
+              <label class="sr-only" for="title">Título da página</label
+              ><input
+                id="title"
+                maxlength="200"
+                placeholder="Título da documentação"
+                value="Documentação"
+              />
+              <p>Escreva em Markdown e gere o HTML pronto para o seu site.</p>
+            </div>
+            <div class="main-actions">
+              <button
+                class="quiet-button"
+                id="download-html"
+                title="Baixar somente o arquivo HTML"
+              >
+                <svg aria-hidden="true" class="icon">
+                  <use href="#icon-download"></use></svg
+                ><span>Baixar HTML</span></button
+              ><a
+                class="button-link"
+                href="#"
+                id="view-html"
+                rel="noopener noreferrer"
+                target="_blank"
+                ><svg aria-hidden="true" class="icon">
+                  <use href="#icon-external"></use></svg
+                ><span>Visualizar</span></a
+              ><button
+                id="publish-github"
+                title="Publicar no GitHub"
+                aria-label="Publicar no GitHub"
+              >
+                <svg aria-hidden="true" class="icon">
+                  <use href="#icon-upload"></use>
+                </svg>
+                <span>Publicar</span></button
+              ><button class="primary" id="generate">
+                Gerar HTML
+                <svg aria-hidden="true" class="icon">
+                  <use href="#icon-arrow"></use></svg
+                ><kbd>Ctrl+S</kbd>
+              </button>
+            </div>
+          </div>
+          <div class="document-files">
+            <button class="file-summary" data-open-settings="template-path">
+              <span class="file-summary-icon"
+                ><svg aria-hidden="true" class="icon">
+                  <use href="#icon-file"></use></svg></span
+              ><span
+                ><small>TEMPLATE</small
+                ><strong id="meta-template">Selecionar template</strong></span
+              ><svg aria-hidden="true" class="icon">
+                <use href="#icon-chevron"></use>
+              </svg></button
+            ><button class="file-summary" data-open-settings="output-path">
+              <span class="file-summary-icon output"
+                ><svg aria-hidden="true" class="icon">
+                  <use href="#icon-code"></use></svg></span
+              ><span
+                ><small>ARQUIVO DE SAÍDA</small
+                ><strong id="meta-output">Definir destino do HTML</strong></span
+              ><svg aria-hidden="true" class="icon">
+                <use href="#icon-chevron"></use>
+              </svg></button
+            ><button class="file-summary" data-open-settings="images-dir">
+              <span class="file-summary-icon images"
+                ><svg aria-hidden="true" class="icon">
+                  <use href="#icon-folder"></use></svg></span
+              ><span
+                ><small>PASTA DE IMAGENS</small
+                ><strong id="meta-images">Selecionar pasta</strong></span
+              ><svg aria-hidden="true" class="icon">
+                <use href="#icon-chevron"></use>
+              </svg>
+            </button>
+          </div>
+          <div class="editor-card">
+            <div class="workspace-controls">
+              <div aria-label="Modo do editor" class="view-switch">
+                <button
+                  aria-pressed="true"
+                  class="active"
+                  data-editor-view="split"
+                >
+                  <svg aria-hidden="true" class="icon">
+                    <use href="#icon-split"></use></svg
+                  ><span>Dividido</span></button
+                ><button aria-pressed="false" data-editor-view="source">
+                  Editor</button
+                ><button aria-pressed="false" data-editor-view="preview">
+                  Prévia
+                </button>
+              </div>
+              <div class="workspace-control-actions">
+                <button
+                  data-open-settings="generation-options"
+                  id="open-options"
+                >
+                  <svg aria-hidden="true" class="icon">
+                    <use href="#icon-settings"></use></svg
+                  ><span>Opções de geração</span></button
+                ><button
+                  aria-label="Expandir área de trabalho"
+                  aria-pressed="false"
+                  class="icon-button"
+                  id="focus-mode"
+                  title="Expandir área de trabalho"
+                >
+                  <svg aria-hidden="true" class="icon">
+                    <use href="#icon-expand"></use>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="editor-layout" data-view="split">
+              <section class="editor-panel">
+                <div class="panel-heading">
+                  <strong
+                    ><span class="markdown-symbol">M↓</span> MARKDOWN</strong
+                  ><span id="word-count">0 palavras</span>
+                </div>
+                <div aria-label="Formatação" class="editor-toolbar">
+                  <div class="toolbar-group">
+                    <details class="tool-menu">
+                      <summary title="Títulos">H <span>⌄</span></summary>
+                      <div>
+                        <button data-command="heading1">
+                          H1 · Título principal</button
+                        ><button data-command="heading2">H2 · Seção</button
+                        ><button data-command="heading3">H3 · Subseção</button
+                        ><button data-command="heading4">
+                          H4 · Título menor
+                        </button>
+                      </div>
+                    </details>
+                    <button
+                      aria-label="Negrito"
+                      data-command="bold"
+                      title="Negrito (Ctrl+B)"
+                    >
+                      <b>B</b></button
+                    ><button
+                      aria-label="Itálico"
+                      data-command="italic"
+                      title="Itálico (Ctrl+I)"
+                    >
+                      <i>I</i></button
+                    ><button
+                      aria-label="Código inline"
+                      data-command="inline"
+                      title="Código inline (Ctrl+N)"
+                    >
+                      `</button
+                    ><button
+                      aria-label="Bloco de código"
+                      data-command="code"
+                      title="Bloco de código (Ctrl+P)"
+                    >
+                      <svg aria-hidden="true" class="icon">
+                        <use href="#icon-code"></use>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="toolbar-group">
+                    <button
+                      aria-label="Lista com marcadores"
+                      data-command="dash"
+                      title="Lista com marcadores (Ctrl+D)"
+                    >
+                      ≡</button
+                    ><button
+                      aria-label="Lista numerada"
+                      data-command="numbered"
+                      title="Lista numerada (Ctrl+E)"
+                    >
+                      1.</button
+                    ><button
+                      aria-label="Inserir link"
+                      data-command="link"
+                      title="Link personalizado"
+                    >
+                      <svg aria-hidden="true" class="icon">
+                        <use href="#icon-link"></use>
+                      </svg></button
+                    ><button
+                      aria-label="Destacar parágrafo"
+                      data-command="highlight"
+                      title="Destacar parágrafo"
+                    >
+                      ❞
+                    </button>
+                  </div>
+                  <div class="toolbar-group">
+                    <button id="insert-table" title="Inserir tabela (Ctrl+T)">
+                      <svg aria-hidden="true" class="icon">
+                        <use href="#icon-table"></use></svg
+                      ><span>Tabela</span></button
+                    ><button
+                      id="insert-tablecard"
+                      title="Inserir tabela card (Ctrl+R)"
+                    >
+                      <span>Card</span></button
+                    ><button
+                      aria-label="Enviar imagem"
+                      id="upload-image"
+                      title="Enviar imagem ou colar com Ctrl+V"
+                    >
+                      <svg aria-hidden="true" class="icon">
+                        <use href="#icon-image"></use>
+                      </svg></button
+                    ><button
+                      aria-label="Gerenciar imagens"
+                      id="manage-images"
+                      title="Gerenciar imagens"
+                    >
+                      <svg aria-hidden="true" class="icon">
+                        <use href="#icon-folder"></use>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="toolbar-group toolbar-last">
+                    <button
+                      aria-label="Buscar no documento"
+                      id="find"
+                      title="Buscar (Ctrl+F)"
+                    >
+                      <svg aria-hidden="true" class="icon">
+                        <use href="#icon-search"></use>
+                      </svg></button
+                    ><button
+                      aria-label="Desfazer"
+                      data-command="undo"
+                      title="Desfazer (Ctrl+Z)"
+                    >
+                      <svg aria-hidden="true" class="icon">
+                        <use href="#icon-undo"></use>
+                      </svg></button
+                    ><button
+                      aria-label="Refazer"
+                      data-command="redo"
+                      title="Refazer (Ctrl+Y)"
+                    >
+                      <svg aria-hidden="true" class="icon">
+                        <use href="#icon-redo"></use>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div hidden="" id="find-bar">
+                  <input
+                    aria-label="Pesquisar no texto"
+                    id="find-text"
+                    placeholder="Encontrar no documento…"
+                  /><span id="find-count">0/0</span
+                  ><button aria-label="Resultado anterior" id="find-prev">
+                    ↑</button
+                  ><button aria-label="Próximo resultado" id="find-next">
+                    ↓</button
+                  ><button aria-label="Fechar busca" id="find-close">×</button>
+                </div>
+                <textarea
+                  aria-label="Editor Markdown"
+                  id="editor"
+                  placeholder="# Comece sua documentação
+
+O conteúdo será inserido no seu template HTML."
+                  spellcheck="false"
+                ></textarea>
+                <div class="attachments" hidden="" id="attachments">
+                  <div class="attachments-heading">
+                    <span>IMAGENS <b id="image-count">0</b></span
+                    ><button hidden="" id="unused-images"></button
+                    ><button id="manage-images-bottom">
+                      Gerenciar
+                      <svg aria-hidden="true" class="icon">
+                        <use href="#icon-chevron"></use>
+                      </svg>
+                    </button>
+                  </div>
+                  <div
+                    aria-label="Imagens do documento"
+                    id="image-thumbnails"
+                  ></div>
+                </div>
+                <div class="panel-footer">
+                  <span id="cursor-position">Ln 1, Col 1</span
+                  ><span class="save-indicator"
+                    ><span class="status-dot"></span
+                    ><span id="save-status" role="status"
+                      >Pronto para editar</span
+                    ></span
+                  >
+                </div>
+              </section>
+              <section class="preview-panel">
+                <div class="panel-heading">
+                  <strong><span class="live-dot"></span>PRÉVIA DO SITE</strong
+                  ><button id="refresh-preview" title="Atualizar a prévia">
+                    <svg aria-hidden="true" class="icon">
+                      <use href="#icon-history"></use></svg
+                    ><span>Atualizar</span>
+                  </button>
+                </div>
+                <iframe
+                  id="preview"
+                  referrerpolicy="no-referrer"
+                  sandbox="allow-scripts"
+                  title="Prévia do HTML no template"
+                ></iframe>
+                <div class="panel-footer" id="preview-status">
+                  Preparando a prévia do template…
+                </div>
+              </section>
+            </div>
+          </div>
+          <div class="workspace-footer">
+            <span
+              ><kbd>Ctrl</kbd> + <kbd>S</kbd> gerar HTML
+              <span class="footer-divider">·</span> <kbd>Ctrl</kbd> +
+              <kbd>V</kbd> colar imagem</span
+            ><span id="generation-result" role="status"
+              >O HTML será salvo no caminho escolhido.</span
+            ><button
+              id="save-markdown"
+              title="Baixar o Markdown deste documento"
+            >
+              <svg aria-hidden="true" class="icon">
+                <use href="#icon-download"></use></svg
+              ><span>Salvar Markdown</span></button
+            ><button id="history" title="Histórico do projeto atual">
+              <svg aria-hidden="true" class="icon">
+                <use href="#icon-history"></use></svg
+              ><span>Histórico</span></button
+            ><button id="open-markdown" title="Abrir um arquivo Markdown">
+              <svg aria-hidden="true" class="icon">
+                <use href="#icon-upload"></use></svg
+              ><span>Abrir Markdown</span>
+            </button>
+          </div>
+        </section>
+        <section class="tab-page" id="site-tab" hidden>
+          <div class="site-heading">
+            <div>
+              <span class="eyebrow">ARQUIVOS LOCAIS DO SITE</span>
+              <h1>Site e repositórios</h1>
+              <p>
+                Edite as páginas do clone local e revise as alterações antes do
+                push.
+              </p>
+            </div>
+            <button id="site-clone">Clonar repositório</button>
+          </div>
+          <div class="site-root-controls">
+            <label
+              >Raiz do site (index.html)
+              <div class="path-input">
+                <input
+                  id="site-directory"
+                  placeholder="Pasta local do site"
+                /><button id="site-choose" aria-label="Escolher pasta do site">
+                  Selecionar</button
+                ><button id="site-refresh">Atualizar páginas</button>
+              </div></label
+            ><select id="site-recent" aria-label="Sites e clones recentes">
+              <option value="">Sites e clones recentes</option>
+            </select>
+          </div>
+          <p id="site-status" class="field-hint">
+            Escolha a raiz local do site.
+          </p>
+          <div class="site-main-actions">
+            <button id="site-new-document">Nova documentação neste site</button
+            ><button id="site-publish" class="primary">
+              Publicar alterações do site</button
+            ><button id="site-open-editor">VS Code Web local</button
+            ><button
+              id="site-editor-settings"
+              class="icon-button"
+              aria-label="Configurar VS Code Web local"
+            >
+              <svg class="icon" aria-hidden="true">
+                <use href="#icon-settings"></use>
+              </svg>
+            </button>
+          </div>
+          <div class="site-list-tools">
+            <input
+              id="site-filter"
+              placeholder="Filtrar por título ou caminho"
+              aria-label="Filtrar páginas"
+            /><button id="site-select-visible">Marcar visíveis</button
+            ><button id="site-clear-selection">Desmarcar</button
+            ><span id="site-selection">0 selecionada(s)</span>
+          </div>
+          <div id="site-pages" class="site-pages"></div>
+          <div class="site-bottom-actions">
+            <button id="site-trash-selected" class="danger-button" disabled>
+              Excluir páginas selecionadas</button
+            ><button id="site-show-trash">Lixeira de páginas (0)</button>
+          </div>
+        </section>
+        <section class="tab-page" hidden="" id="replace-tab">
+          <h1>Substituidor de texto</h1>
+          <p>
+            Busque texto em uma pasta, filtre os arquivos e aplique a
+            substituição apenas nos selecionados.
+          </p>
+          <div class="tool-form">
+            <label
+              >Pasta de arquivos
+              <div class="path-input">
+                <input
+                  id="replace-folder"
+                  placeholder="Caminho da pasta na máquina do aplicativo"
+                /><button data-pick-folder="replace-folder">
+                  Selecionar pasta
+                </button>
+              </div></label
+            >
+            <div class="two-columns">
+              <label
+                >Texto antigo (multilinha)<textarea
+                  id="replace-old"
+                ></textarea></label
+              ><label
+                >Texto novo (multilinha)<textarea id="replace-new"></textarea>
+              </label>
+            </div>
+            <button class="primary" id="replace-scan">Buscar arquivos</button>
+          </div>
+          <div id="replace-results"></div>
+          <pre
+            aria-label="Log da substituição"
+            class="tool-log"
+            id="replace-log"
+          ></pre>
+        </section>
+        <section class="tab-page" hidden="" id="format-tab">
+          <h1>Formatador de HTML</h1>
+          <p>
+            Selecione uma pasta, filtre os arquivos e escolha quais serão
+            formatados. Blocos pre, script, style e textarea são preservados.
+          </p>
+          <div class="tool-form">
+            <label
+              >Pasta de arquivos
+              <div class="path-input">
+                <input
+                  id="format-folder"
+                  placeholder="Caminho da pasta na máquina do aplicativo"
+                /><button data-pick-folder="format-folder">
+                  Selecionar pasta
+                </button>
+              </div></label
+            ><button class="primary" id="format-scan">Buscar arquivos</button>
+          </div>
+          <div id="format-results"></div>
+          <pre
+            aria-label="Log da formatação"
+            class="tool-log"
+            id="format-log"
+          ></pre>
+        </section>
+        <section class="tab-page manual" hidden="" id="manual-tab">
+          <h1>Manual de utilização</h1>
+          <h2>Gerar uma documentação HTML</h2>
+          <ol>
+            <li>
+              Selecione o template HTML que contém <code>{{content}}</code>.
+            </li>
+            <li>Informe o título e o arquivo HTML de saída.</li>
+            <li>
+              Selecione a pasta de imagens e o caminho correspondente no HTML.
+            </li>
+            <li>Edite o Markdown, cole imagens com Ctrl+V e insira tabelas.</li>
+            <li>
+              Clique em <b>Gerar HTML</b> ou use Ctrl+S. O HTML será gravado
+              diretamente no caminho indicado.
+            </li>
+          </ol>
+          <p>
+            <b>Baixar HTML</b> baixa apenas o arquivo .html, sem exigir um ZIP.
+            <b>Visualizar</b> abre o HTML usando a estrutura do site informada.
+            A prévia detecta automaticamente a raiz do site para carregar CSS,
+            JavaScript e imagens. Ajuste o campo de raiz somente se necessário.
+          </p>
+          <h2>Imagens</h2>
+          <p>
+            Ctrl+V com uma imagem no editor grava um PNG na pasta escolhida,
+            insere o Markdown e incrementa o índice. O mesmo fluxo funciona pelo
+            botão Imagem. O caminho no HTML pode ser diferente do caminho
+            físico. Ao rodar no LXC, a pasta é do LXC; um caminho do Windows não
+            aponta para seu computador remoto.
+          </p>
+          <p>
+            O × da miniatura remove a imagem do Markdown; Ctrl+Z desfaz. Em
+            <b>Gerenciar imagens</b>, selecione uma ou várias imagens para mover
+            à pasta correta ou enviar à lixeira. A lixeira permite restaurar os
+            arquivos e inseri-los novamente. <b>Ler imagens de uma pasta</b>
+            encontra arquivos salvos antes desta atualização. Apagar a
+            referência no texto também retira a miniatura, sem apagar o arquivo.
+          </p>
+          <p>
+            No filtro <b>Na lixeira</b>, use <b>Excluir definitivamente</b> em
+            uma imagem ou selecione várias para excluir em lote. A confirmação
+            mostra os arquivos que serão apagados. Essa ação não pode ser
+            desfeita.
+          </p>
+          <p>
+            Os caminhos e as opções ficam em <b>Configurar arquivos</b> e nos
+            três resumos acima do editor. Alterne entre <b>Dividido</b>,
+            <b>Editor</b> e <b>Prévia</b> ou expanda a área de trabalho para
+            escrever com mais espaço.
+          </p>
+          <h2>Templates e opções</h2>
+          <p>
+            O template padrão é o template original do projeto. HTML escrito no
+            Markdown é aceito por padrão, como na aplicação antiga. Você pode
+            desativá-lo nas opções. Os blocos <code>table</code>,
+            <code>tablecard</code>, os cards de código, os botões de copiar,
+            <code>| destaque</code> e
+            <code>{{link: URL | Texto}}</code> continuam disponíveis.
+          </p>
+          <h2>Site e repositórios</h2>
+          <p>
+            Selecione a pasta do index.html para listar e editar seus HTML
+            locais. A exclusão pede confirmação e envia a página para uma
+            lixeira recuperável. Para enviar as mudanças e remoções ao GitHub,
+            use
+            <b>Publicar alterações do site</b>; essa revisão não regenera
+            páginas.
+          </p>
+          <p>
+            Você também pode clonar um repositório para uma pasta nova ou abrir
+            o VS Code Web na mesma cópia local. No Windows, a inicialização pede
+            sua aceitação dos termos do servidor. No LXC, configure um
+            code-server com acesso à mesma pasta. Salve, atualize a listagem e
+            revise o commit.
+          </p>
+          <h2>Publicar no GitHub</h2>
+          <p>
+            O botão <b>Publicar</b> gera o HTML e abre uma revisão dos arquivos
+            do repositório. Confira o destino, selecione os HTML e imagens, veja
+            as diferenças e informe a mensagem de commit. O envio à <b>main</b>
+            dispara a pipeline existente do GitHub Actions para o S3. A geração
+            comum de HTML continua disponível pelo botão Gerar HTML.
+          </p>
+          <p>
+            A pasta do clone pode ser informada em Configurar arquivos. O Git
+            precisa estar instalado e autenticado no computador ou servidor que
+            executa o aplicativo. Atualize a main local quando solicitado. Se o
+            push falhar depois do commit, use Reenviar este commit. Os links e o
+            botão Atualizar pipeline permitem acompanhar o deploy.
+          </p>
+          <h2>Histórico</h2>
+          <p>
+            Configure a frequência em segundos e o máximo de versões. O
+            histórico salva rascunhos Markdown; ele não gera nem publica HTML
+            automaticamente. Históricos de projetos permite abrir projetos
+            anteriores e os autosaves da pasta antiga. Antes de restaurar, a
+            versão atual é salva.
+          </p>
+          <h2>Atalhos</h2>
+          <table>
+            <tr>
+              <th>Atalho</th>
+              <th>Ação</th>
+            </tr>
+            <tr>
+              <td>Ctrl+S</td>
+              <td>Gerar HTML</td>
+            </tr>
+            <tr>
+              <td>Ctrl+V</td>
+              <td>Colar imagem ou texto</td>
+            </tr>
+            <tr>
+              <td>Ctrl+B / Ctrl+I / Ctrl+N</td>
+              <td>Negrito / itálico / código inline</td>
+            </tr>
+            <tr>
+              <td>Ctrl+P</td>
+              <td>Bloco de código</td>
+            </tr>
+            <tr>
+              <td>Ctrl+H / J / K / L</td>
+              <td>Títulos H1 / H2 / H3 / H4</td>
+            </tr>
+            <tr>
+              <td>Ctrl+D / Ctrl+E</td>
+              <td>Lista simples / numerada</td>
+            </tr>
+            <tr>
+              <td>Ctrl+T / Ctrl+R</td>
+              <td>Construtor de tabela / tabela card</td>
+            </tr>
+            <tr>
+              <td>Ctrl+F</td>
+              <td>Pesquisar no editor</td>
+            </tr>
+            <tr>
+              <td>Ctrl+Z / Ctrl+Y</td>
+              <td>Desfazer / refazer</td>
+            </tr>
+          </table>
+          <p>
+            Alguns atalhos reservados pelo navegador podem ser capturados por
+            ele. Todas as ações também estão na barra do editor.
+          </p>
+          <h2>Substituição e formatação</h2>
+          <p>
+            As ferramentas trabalham nos arquivos da pasta escolhida, inclusive
+            subpastas. Faça a busca, filtre, marque os arquivos e confirme a
+            aplicação. Uma cópia anterior de cada arquivo alterado é guardada no
+            diretório de dados do aplicativo em file-backups. Também são aceitos
+            TXT, HTML, HTM, MD, CSV, JSON e XML em UTF-8.
+          </p>
+        </section>
+      </main>
+    </div>
+    <dialog id="settings-drawer">
+      <div class="drawer-heading">
+        <div>
+          <span class="eyebrow">CONFIGURAÇÃO DO DOCUMENTO</span>
+          <h2>Arquivos e geração</h2>
+        </div>
+        <button
+          aria-label="Fechar configurações"
+          class="icon-button"
+          id="close-settings"
+        >
+          <svg aria-hidden="true" class="icon">
+            <use href="#icon-close"></use>
+          </svg>
+        </button>
+      </div>
+      <div class="drawer-content">
+        <fieldset class="project-settings">
+          <legend>Template e destino</legend>
+          <label
+            >Template HTML<input
+              id="template-path"
+              placeholder="Arquivo com o marcador {{content}}"
+            />
+            <div class="field-actions">
+              <button id="choose-template">
+                <svg aria-hidden="true" class="icon">
+                  <use href="#icon-folder"></use></svg
+                >Selecionar template</button
+              ><button id="import-template">
+                <svg aria-hidden="true" class="icon">
+                  <use href="#icon-upload"></use></svg
+                >Enviar arquivo
+              </button>
+            </div>
+            <small id="template-status">Template do projeto</small></label
+          ><label
+            >Arquivo HTML de saída
+            <div class="path-input">
+              <input
+                id="output-path"
+                placeholder="C:\site\paginas\tutorial.html"
+              /><button
+                aria-label="Escolher arquivo de saída"
+                id="choose-output"
+                title="Escolher arquivo de saída"
+              >
+                <svg aria-hidden="true" class="icon">
+                  <use href="#icon-folder"></use>
+                </svg>
+              </button>
+            </div>
+            <small
+              >O botão Gerar HTML grava diretamente neste arquivo.</small
+            ></label
+          >
+        </fieldset>
+        <fieldset class="image-settings">
+          <legend>Imagens do documento</legend>
+          <label
+            >Pasta onde as imagens serão salvas
+            <div class="path-input">
+              <input id="images-dir" placeholder="Selecione uma pasta" /><button
+                aria-label="Selecionar pasta de imagens"
+                id="choose-images"
+                title="Selecionar pasta de imagens"
+              >
+                <svg aria-hidden="true" class="icon">
+                  <use href="#icon-folder"></use>
+                </svg>
+              </button></div
+          ></label>
+          <div class="image-path-grid">
+            <label
+              >Caminho no HTML<input
+                id="image-web-path"
+                placeholder="../../imagens/tutorial"
+                value="imagens" /></label
+            ><label
+              >Próximo índice<input
+                id="image-index"
+                max="1000000"
+                min="0"
+                type="number"
+                value="0"
+            /></label>
+          </div>
+          <p class="field-hint">
+            Cole com Ctrl+V. As imagens são salvas como img-0.png, img-1.png…
+          </p>
+        </fieldset>
+        <fieldset class="generation-options">
+          <legend>Opções de geração</legend>
+          <div id="generation-options"></div>
+        </fieldset>
+        <fieldset>
+          <legend>Publicação no GitHub</legend>
+          <label
+            >Raiz do site (pasta do index.html)
+            <div class="path-input">
+              <input
+                id="github-repo-path"
+                placeholder="Detectada pelo HTML de saída"
+              /><button
+                id="choose-github-repo"
+                aria-label="Selecionar repositório GitHub"
+              >
+                <svg aria-hidden="true" class="icon">
+                  <use href="#icon-folder"></use>
+                </svg>
+              </button></div
+          ></label>
+          <small
+            >O botão Publicar gera o HTML, permite revisar os arquivos e envia
+            um commit à main. A pipeline do repositório publica no S3.</small
+          >
+        </fieldset>
+        <details class="advanced">
+          <summary>Raiz do site e recursos da prévia</summary>
+          <label
+            >Raiz do site
+            <div class="path-input">
+              <input
+                aria-label="Pasta raiz do site"
+                id="site-dir"
+                placeholder="Detectada automaticamente"
+              /><button
+                aria-label="Selecionar raiz do site"
+                id="choose-site"
+                title="Selecionar raiz do site"
+              >
+                <svg aria-hidden="true" class="icon">
+                  <use href="#icon-folder"></use>
+                </svg>
+              </button></div
+          ></label>
+          <p>
+            Usada para localizar CSS, JavaScript e imagens. Ajuste somente se a
+            detecção automática não encontrar a pasta correta.
+          </p>
+        </details>
+        <p class="path-note" id="path-note"></p>
+      </div>
+      <div class="drawer-footer">
+        <span>As alterações acompanham o rascunho.</span
+        ><button class="primary" id="done-settings">
+          Concluir
+          <svg aria-hidden="true" class="icon">
+            <use href="#icon-check"></use>
+          </svg>
+        </button>
+      </div>
+    </dialog>
+    <dialog id="modal">
+      <div class="modal-heading">
+        <h2 id="modal-title"></h2>
+        <button aria-label="Fechar" class="icon-button" id="close-modal">
+          <svg aria-hidden="true" class="icon">
+            <use href="#icon-close"></use>
+          </svg>
+        </button>
+      </div>
+      <div id="modal-body"></div>
+    </dialog>
+    <div hidden="" id="toast" role="status"></div>
+    <input accept=".md,.txt" hidden="" id="markdown-file" type="file" /><input
+      accept=".html,.htm"
+      hidden=""
+      id="template-file"
+      type="file"
+    /><input accept="image/*" hidden="" id="image-file" type="file" />
+  </body>
+</html>
