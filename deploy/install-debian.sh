@@ -31,12 +31,12 @@ if [[ ! -f /etc/seabirds/seabirds.env ]]; then
     password="$(/opt/seabirds/venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(24))')"
     umask 077
     read -sp "Digite o seu token: " token
-    printf 'SEABIRDS_DATA_DIR=/var/lib/seabirds\nSEABIRDS_HOST=0.0.0.0\nSEABIRDS_PORT=80\nSEABIRDS_USERNAME=admin\nSEABIRDS_PASSWORD=%s\nSEABIRDS_HISTORY_LIMIT=50\nSEABIRDS_GITHUB_TOKEN=' "$password" "$token" > /etc/seabirds/seabirds.env
+    printf 'SEABIRDS_DATA_DIR=/var/lib/seabirds\nSEABIRDS_HOST=0.0.0.0\nSEABIRDS_PORT=8000\nSEABIRDS_USERNAME=admin\nSEABIRDS_PASSWORD=%s\nSEABIRDS_HISTORY_LIMIT=50\nSEABIRDS_GITHUB_TOKEN=' "$password" "$token" > /etc/seabirds/seabirds.env
 fi
 install -m 644 "$source_dir/deploy/seabirds.service" /etc/systemd/system/seabirds.service
 systemctl daemon-reload
 systemctl enable seabirds
 systemctl restart seabirds
-printf 'Instalado. Acesse http://IP-DO-LXC:80 com usuário admin.\n'
+printf 'Instalado. Acesse http://IP-DO-LXC:8000 com usuário admin.\n'
 printf 'Consulte a senha em /etc/seabirds/seabirds.env e os logs com journalctl -u seabirds.\n'
 printf 'Use /srv/seabirds para os arquivos HTML, templates e imagens, ou autorize outro diretório no serviço.\n'
