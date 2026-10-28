@@ -117,24 +117,19 @@ O fluxo é: **clone local → editar/salvar → revisar → commit/push → GitH
 
 ## VS Code Web na mesma cópia local
 
-Em **Site e repositórios → Configurar editor**, conecte um editor que execute na mesma máquina do gerador. **VS Code Web local** abre uma nova aba com a pasta selecionada. Após salvar no editor, use **Atualizar páginas** e **Publicar alterações do site** no gerador.
+Em **Site e repositórios → Configurar editor**, conecte um editor que execute na mesma máquina do gerador. **Editor do site** abre uma nova aba com a pasta selecionada. Após salvar no editor, use **Atualizar páginas** e **Publicar alterações do site** no gerador.
 
 No Windows, com VS Code instalado e disponível no PATH, use **Iniciar VS Code Web neste computador**. A interface apresenta os [termos do Visual Studio Code Server](https://aka.ms/vscode-server-license); só inicia após sua aceitação. O processo usa `127.0.0.1:8765`, autenticação por token e dados separados em `data/vscode-*`. A primeira execução pode baixar componentes do VS Code. A API de inicialização só aceita acesso pela própria máquina. O gerador exige VS Code 1.128.1 ou mais recente; mantenha-o atualizado. Fechar a aba do navegador mantém o processo em execução; reiniciar o computador o encerra, e o botão pode iniciá-lo novamente. Os testes desta entrega simularam a inicialização, sem aceitar os termos por você.
 
-No Debian/LXC, instale o [code-server pelo procedimento oficial](https://coder.com/docs/code-server/install). Depois do instalador principal do SeaBirdsCloud, os exemplos opcionais usam o mesmo usuário `seabirds` e as mesmas pastas locais:
+No Debian/LXC ou na EC2, o editor pode ficar hospedado junto do gerador. Atualize para a versão 2.6.0 e execute `bash deploy/install-web.sh` no servidor. Depois, use **Site e repositórios → Editor do site**. O editor abre no mesmo endereço, em `/editor/`, acessando a pasta selecionada do servidor. Ele inicia automaticamente com o servidor e usa senha própria; o computador do usuário só precisa do navegador.
 
-```bash
-install -m 600 -o seabirds -g seabirds deploy/code-server.yaml.example /etc/seabirds/code-server.yaml
-# Edite este arquivo e substitua a senha de exemplo antes de iniciar.
-nano /etc/seabirds/code-server.yaml
-install -m 644 deploy/seabirds-editor.service /etc/systemd/system/seabirds-editor.service
-systemctl daemon-reload
-systemctl enable --now seabirds-editor
-```
+O modo de desenvolvimento mantém HTTP e a porta pública 8000. O proxy encaminha o gerador para a porta interna 8001 e o editor para 8765, ambas em loopback. O link é relativo e também funciona no IP do LXC, sem fixar o DNS da EC2. A configuração de publicação Git continua sendo feita no gerador, com revisão antes do commit/push.
 
-O exemplo pressupõe o executável `/usr/bin/code-server`; ajuste `ExecStart` se sua instalação usar outro caminho. O editor escuta em loopback, com senha própria. Para acessar do computador, crie um túnel SSH: `ssh -L 8765:127.0.0.1:8765 usuario@IP-DO-LXC` e configure a URL `http://127.0.0.1:8765`, tipo **code-server**. Também pode usar um proxy HTTPS autenticado que encaminhe WebSockets. A pasta enviada no link é um caminho **do LXC**, conforme o parâmetro [folder do code-server](https://coder.com/docs/code-server/FAQ#how-does-code-server-decide-what-workspace-or-folder-to-open). Se o site estiver fora de `/srv/seabirds`, conceda permissão ao usuário e ajuste `ReadWritePaths` nos dois serviços. Em Docker, um editor separado precisa montar o mesmo volume do site no mesmo caminho, com permissão de escrita.
+Veja [instalação e atualização do editor Web](docs/EDITOR-WEB.md), incluindo senhas, serviços, portas, migração para LXC e limites do HTTP. Para integrar um editor já existente, informe uma URL HTTP/HTTPS ou um caminho como `/editor/` em **Configurar editor**. `SEABIRDS_EDITOR_URL` permite administrar essa conexão no servidor e substitui uma URL antiga salva pela interface enquanto estiver definido.
 
 ## LXC Debian 13 no Proxmox
+
+Na versão 2.5.0, caminhos absolutos digitados no seletor são confirmados diretamente e as permissões do servidor são exibidas na aba do site. Para atualizar um LXC ou usar um clone existente em `/opt`, consulte [Linux e LXC](docs/LINUX.md). Após instalar, prepare esse clone como root com `seabirds-configure-site '/opt/caminho-do-site'` e atualize a listagem na aplicação.
 
 Crie um LXC Debian 13 não privilegiado. Um ponto inicial para uso pessoal é 1 vCPU, 512 MB–1 GB de RAM e espaço de disco proporcional às imagens; não é um dimensionamento medido. Copie o código para `/root/seabirds-src` dentro do LXC e execute como root **no LXC**:
 

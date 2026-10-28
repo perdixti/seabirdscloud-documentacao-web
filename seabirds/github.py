@@ -116,6 +116,10 @@ class GitHubPublisher:
             detail = self.clean_error(
                 (result.stderr or result.stdout).decode("utf-8", errors="replace")
             )
+            if "dubious ownership" in detail:
+                raise ValueError(
+                    "O clone pertence a outro usuário do Linux. Prepare a pasta para o usuário do aplicativo com seabirds-configure-site antes de publicar."
+                )
             raise ValueError("Falha no Git: " + detail)
         return result
 

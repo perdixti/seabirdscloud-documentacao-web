@@ -1,10 +1,29 @@
 # Validação — fluxo de geração HTML
 
-Data: 27/10/2026. A revisão foi orientada pela correção do usuário: preservar o gerador de HTML e as operações em arquivos da aplicação original.
+Data: 28/10/2026. Versão 2.6.0: editor hospedado no servidor, com acesso pelo navegador no mesmo endereço do gerador.
 
-## Executado
+## Executado na versão 2.6.0
 
-- Suíte Python no Windows/Python 3.12.14: **102 testes**, incluindo o fluxo de arquivos, a separação de listas, detecção automática dos recursos CSS na prévia, gerenciamento de imagens, publicação GitHub e gestão do site local.
+- Suíte de 123 casos: Linux/Python 3.12 com **122 aprovados e 1 ignorado**; Windows/Python 3.12 com **116 aprovados e 7 ignorados**. Verificações de estilo Python e sintaxe JavaScript aprovadas.
+- URL de editor relativa e absoluta, pasta com espaços/Unicode, persistência após reinício e recusa de URLs ambíguas, credenciais e portas inválidas. A conexão gerenciada pelo servidor substitui a URL antiga de loopback sem apagar as preferências do usuário; a API impede sobrescrever essa conexão pela interface.
+- DOM isolado: o botão Editor do site usa o mesmo host e porta, abre nova aba com a pasta correta e mostra os controles de configuração gerenciada. A regressão existente de listagem, edição, conflitos, exclusão/restauração, clone e publicação também passou.
+- code-server oficial 4.143.1 e Caddy oficial 2.11.7 executados em pasta Linux temporária. O navegador acessou HTTP pelo IP do Linux, autenticou no editor, abriu uma pasta de teste com espaços, alterou o index.html e salvou com Ctrl+S. A gravação foi confirmada no disco e pela leitura da mesma página na API do gerador. A sessão de edição exercitou a conexão do editor através de `/editor/` e do proxy.
+- HTTP real: gerador exige autenticação (401), editor redireciona para login, `/editor` redireciona para `/editor/`, login funciona no subcaminho e as duas aplicações compartilham a mesma porta externa.
+- Três unidades systemd transitórias sob usuário comum, em árvore temporária de `/opt`, validaram gerador, editor e proxy com `ProtectSystem=strict`, `ProtectHome=yes`, `PrivateTmp=yes`, `NoNewPrivileges=yes` e escrita restrita ao estado e site de teste. Os três serviços responderam corretamente e foram removidos ao terminar.
+- Caddy validou as configurações geradas para portas 8000/8001 e 80/9001. A sintaxe dos instaladores foi conferida em Bash; os argumentos de portas conflitantes, inválidas e com caracteres de comando foram recusados.
+
+Os testes usaram apenas arquivos, senhas e pastas sintéticas. O instalador completo com apt e a transição de porta no servidor real da EC2 não foram executados pelo agente; não houve acesso remoto autenticado à EC2. Nenhum commit foi enviado ao GitHub nem publicação ao S3. A configuração HTTP solicitada não oferece criptografia de transporte e limita recursos do navegador que exigem contexto seguro, como webviews de algumas extensões.
+
+## Histórico da validação 2.5.0
+
+Versão 2.5.0: revisão de compatibilidade Linux, preservando o gerador de HTML e as operações em arquivos da aplicação original.
+
+## Executado anteriormente
+
+- Suíte de 113 casos: Linux/Python 3.12.3 e 3.13.18 com **112 aprovados e 1 ignorado** (abertura nativa Windows); Windows/Python 3.12.14 com **106 aprovados e 7 ignorados** (permissões e preparador Linux). Inclui arquivos, listas, prévia, imagens, publicação e gestão do site.
+- Compatibilidade Linux: testes reais de permissões sob usuário comum, diretórios absolutos com espaços/acentos/aspas, URI file, rejeição de caminho Windows, inexistente sem retorno silencioso à pasta pai, navegação com entradas inacessíveis, arquivo HTML sem leitura, preservação de modos POSIX ao gravar e arquivos privados novos com modo 0600.
+- Serviços Linux transitórios: reprodução em `/opt` de clone pertencente ao root, bloqueio por `ProtectSystem=strict` mesmo após corrigir o dono e liberação do diretório exato. Com UID 1000, passaram geração/recursos CSS, duas imagens, edição com backup, lixeira/restauração e commit/push apenas para um remoto bare local. O preparador foi verificado em árvore isolada, sem percorrer links/mounts e com recusa de hard links antes de mudar o dono.
+- Navegador conectado ao Linux: autenticação HTTP Basic, seleção digitada e confirmada diretamente após navegar para outra pasta, Ctrl+V de PNG sintético, miniatura e prévia com CSS, listas separadas e geração do HTML no disco Linux. Integração JavaScript isolada verifica também resposta atrasada, caminho inexistente, Enter na raiz, limpeza da listagem anterior e ações desabilitadas em pasta somente leitura.
 - Site local: 16 testes adicionais verificam listagem recursiva/títulos, edição do HTML completo com backup, conflitos por alteração externa, exclusão individual/em lote com confirmação e pré-validação, lixeira persistente, restauração sem sobrescrita, exclusão/restauração do index, confinamento dos caminhos e prévia com CSS. Clones são feitos somente para remotos bare locais de teste, com identidade e limpeza de falha. A revisão/push de uma página removida é exercitada sem regenerá-la.
 - Editor Web local: links code-server/serve-web apontam para a mesma pasta. A inicialização nativa foi simulada com processo/socket substituídos, verificando aceitação explícita de termos, restrição de acesso local, token fora dos argumentos/configuração e escuta em loopback. O VS Code instalado foi consultado somente com `--version`/`serve-web --help`; nenhum servidor VS Code foi iniciado nem licença aceita durante a validação.
 - Integração JavaScript adicional em DOM isolado: seleção/filtro sem interpretar títulos HTML, salvar código, preservar edição em conflito, confirmação antes da exclusão, restauração, clone, configurações e link do editor. Atualização da main/revisão de remoções não chamam geração ou gravação do rascunho antigo. A aceitação dos termos só aciona uma API simulada no teste.
@@ -34,9 +53,11 @@ A interface foi inspecionada em tela de desktop e em 390 px de largura. A grava�
 
 O TestClient da Starlette emite um aviso de depreciação sobre `httpx`; isso não impede os testes nem afeta o servidor em execução.
 
-## Limites da validação
+## Limites da validação anterior
 
-O Docker Engine local estava desligado e não havia acesso ao Proxmox/LXC. O Dockerfile, Compose, instalador Debian 13 e serviços systemd estão preparados, mas **a execução real no container/LXC não foi validada aqui**, incluindo o serviço opcional code-server. A matriz CI foi configurada e não foi executada no GitHub durante esta entrega.
+Revisão de instalação LXC r1: uma captura do usuário mostrou `useradd: command not found` após instalar os pacotes. O instalador agora define um PATH administrativo, instala explicitamente `passwd` e verifica a disponibilidade de `useradd` antes de criar a conta do serviço. A sintaxe Bash e o conteúdo do ZIP foram conferidos; não foi executado um provisionamento completo de LXC pelo agente.
+
+O Linux foi validado em Ubuntu 24.04/WSL com systemd e Python 3.12/3.13. Não houve acesso remoto ao LXC do usuário. O Docker Engine local estava desligado; o build/execução Docker, o provisionamento completo do Debian 13 no Proxmox e o serviço opcional code-server não foram executados neste ambiente. A matriz CI foi atualizada e não foi disparada no GitHub durante esta entrega.
 
 O diálogo nativo Windows usa Tkinter e possui alternativa por seletor do servidor. O teste de ponta a ponta utilizou caminhos informados no formulário; não automatizou a janela nativa do sistema operacional. Atalhos reservados pelo navegador continuam dependendo dele.
 

@@ -594,15 +594,21 @@ O conteúdo será inserido no seu template HTML."
           <p id="site-status" class="field-hint">
             Escolha a raiz local do site.
           </p>
+          <div
+            id="site-access"
+            class="github-notice"
+            hidden
+            role="status"
+          ></div>
           <div class="site-main-actions">
             <button id="site-new-document">Nova documentação neste site</button
             ><button id="site-publish" class="primary">
               Publicar alterações do site</button
-            ><button id="site-open-editor">VS Code Web local</button
+            ><button id="site-open-editor">Editor do site</button
             ><button
               id="site-editor-settings"
               class="icon-button"
-              aria-label="Configurar VS Code Web local"
+              aria-label="Configurar editor do site"
             >
               <svg class="icon" aria-hidden="true">
                 <use href="#icon-settings"></use>
@@ -757,11 +763,11 @@ O conteúdo será inserido no seu template HTML."
             páginas.
           </p>
           <p>
-            Você também pode clonar um repositório para uma pasta nova ou abrir
-            o VS Code Web na mesma cópia local. No Windows, a inicialização pede
-            sua aceitação dos termos do servidor. No LXC, configure um
-            code-server com acesso à mesma pasta. Salve, atualize a listagem e
-            revise o commit.
+            Você também pode clonar um repositório para uma pasta nova ou usar
+            <b>Editor do site</b> para abrir os arquivos no navegador. No Linux,
+            o editor configurado no servidor acessa a pasta selecionada do site.
+            No Windows, a inicialização do VS Code pede sua aceitação dos termos
+            do servidor. Salve, atualize a listagem e revise o commit.
           </p>
           <h2>Publicar no GitHub</h2>
           <p>

@@ -15,6 +15,7 @@ from uuid import uuid4
 from .filesystem import atomic_write, local_path
 from .github import GitHubPublisher, github_repository
 from .local_editor import LocalEditor
+from .paths import folder_access
 from .storage import ConflictError
 
 
@@ -39,10 +40,11 @@ class PageTitle(HTMLParser):
 
 
 class SiteWorkspace:
-    def __init__(self, directory, files, publisher=None):
+    def __init__(self, directory, files, publisher=None, managed_editor_url=""):
         self.directory = Path(directory).resolve()
         self.catalog = self.directory / "site-workspace.json"
         self.files = files
+        self.managed_editor_url = self.validate_editor_url(managed_editor_url)
         self.publisher = publisher or GitHubPublisher(directory)
         self.lock = threading.RLock()
         self.state = (
@@ -66,7 +68,9 @@ class SiteWorkspace:
     def root(self, value, register=False, cloned=False):
         path = local_path(value)
         if not path.is_dir():
-            raise ValueError("Pasta do site não encontrada.")
+            raise ValueError("Pasta do site não encontrada no servidor: " + str(path))
+        if not os.access(path, os.R_OK | os.X_OK):
+            raise ValueError("O usuário do aplicativo não pode ler esta pasta: " + str(path))
         if path in {
             Path(path.anchor),
             Path.home().resolve(),
@@ -108,6 +112,12 @@ class SiteWorkspace:
             }
             return {
                 **settings,
+                **(
+                    {"editor_url": self.managed_editor_url, "editor_kind": "code-server"}
+                    if self.managed_editor_url
+                    else {}
+                ),
+                "editor_managed": bool(self.managed_editor_url),
                 "local_editor_available": self.local_editor.executable() is not None,
             }
 
@@ -116,20 +126,34 @@ class SiteWorkspace:
             root = self.root(value, register=True)
             return self.local_editor.start(root, confirm_license, port)
 
-    def editor_settings(self, url, kind):
+    @staticmethod
+    def validate_editor_url(url):
         url = url.strip()
         parsed = urlsplit(url)
+        relative = url.startswith("/") and not url.startswith("//")
         if url and (
-            parsed.scheme not in {"http", "https"}
-            or not parsed.netloc
+            (not relative and (parsed.scheme not in {"http", "https"} or not parsed.hostname))
+            or (relative and (parsed.scheme or parsed.netloc))
+            or "\\" in url
+            or any(ord(char) < 33 or ord(char) == 127 for char in url)
             or parsed.username
             or parsed.password
             or parsed.query
             or parsed.fragment
         ):
             raise ValueError(
-                "Informe a URL HTTP/HTTPS do editor local, sem senha, token ou parâmetros na URL."
+                "Informe a URL HTTP/HTTPS do editor ou um caminho como /editor/, sem senha, token ou parâmetros."
             )
+        if parsed.netloc:
+            _ = parsed.port  # Rejeita portas inválidas antes de salvar a conexão.
+        return url
+
+    def editor_settings(self, url, kind):
+        if self.managed_editor_url:
+            raise ValueError(
+                "A conexão do editor está configurada no servidor por SEABIRDS_EDITOR_URL."
+            )
+        url = self.validate_editor_url(url)
         if kind not in {"code-server", "vscode-serve-web"}:
             raise ValueError("Tipo de editor inválido.")
         with self.lock:
@@ -142,16 +166,15 @@ class SiteWorkspace:
             root = self.root(value)
             if relative:
                 self.page(root, relative)
-            url = self.state.get("editor_url", "")
+            settings = self.settings()
+            url = settings["editor_url"]
             if not url:
-                raise ValueError("Configure a URL do VS Code Web local na aba Site e repositórios.")
+                raise ValueError("Configure a URL do editor do site na aba Site e repositórios.")
             parsed = urlsplit(url)
-            folder = (
-                root.as_uri() if self.state.get("editor_kind") == "vscode-serve-web" else str(root)
-            )
+            folder = root.as_uri() if settings["editor_kind"] == "vscode-serve-web" else str(root)
             query = dict(parse_qsl(parsed.query))
             query["folder"] = folder
-            if self.state.get("editor_kind") == "vscode-serve-web":
+            if settings["editor_kind"] == "vscode-serve-web":
                 query.update(self.local_editor.auth_query(parsed))
             return {
                 "url": urlunsplit(
@@ -161,24 +184,34 @@ class SiteWorkspace:
             }
 
     def info(self, root):
+        repository_error = ""
         try:
             git_root = self.publisher.root(str(root))
             repository = self.publisher.repository(git_root)[0]
             branch = self.publisher.text(git_root, "branch", "--show-current")
-        except ValueError:
+        except ValueError as exc:
             repository, branch = None, None
+            if (root / ".git").exists():
+                repository_error = str(exc)
         return {
             "root": str(root),
             "repository": repository,
             "branch": branch,
             "has_index": (root / "index.html").is_file(),
+            "access": folder_access(root),
+            "repository_error": repository_error,
         }
 
     def pages(self, value):
         with self.lock:
             root = self.root(value, register=True)
             pages = []
-            for parent, directories, names in os.walk(root, followlinks=False):
+            skipped = []
+            for parent, directories, names in os.walk(
+                root,
+                followlinks=False,
+                onerror=lambda exc: skipped.append(str(Path(exc.filename).relative_to(root))),
+            ):
                 directories[:] = [
                     name
                     for name in directories
@@ -190,6 +223,7 @@ class SiteWorkspace:
                     path = Path(parent) / name
                     if (
                         path.suffix.lower() not in {".html", ".htm"}
+                        or name.startswith(".")
                         or path.is_symlink()
                         or not path.is_file()
                         or not path.resolve().is_relative_to(root)
@@ -197,22 +231,32 @@ class SiteWorkspace:
                         continue
                     if len(pages) >= 2000:
                         raise ValueError("O site tem mais de 2000 páginas. Escolha uma raiz menor.")
-                    with path.open("rb") as source:
-                        title = PageTitle(
-                            source.read(128 * 1024).decode("utf-8", errors="replace")
-                        ).title.strip()
-                    stat = path.stat()
+                    try:
+                        with path.open("rb") as source:
+                            title = PageTitle(
+                                source.read(128 * 1024).decode("utf-8", errors="replace")
+                            ).title.strip()
+                        stat = path.stat()
+                        version = self.digest(path)
+                    except OSError:
+                        skipped.append(path.relative_to(root).as_posix())
+                        continue
                     pages.append(
                         {
                             "path": path.relative_to(root).as_posix(),
                             "title": title or path.stem,
                             "size": stat.st_size,
                             "modified_at": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
-                            "version": self.digest(path),
+                            "version": version,
                         }
                     )
             pages.sort(key=lambda item: (item["path"] != "index.html", item["path"].casefold()))
-            return {**self.info(root), "pages": pages, "trash": self.trash_entries(root)}
+            return {
+                **self.info(root),
+                "pages": pages,
+                "trash": self.trash_entries(root),
+                "unreadable": skipped,
+            }
 
     def read_page(self, value, relative):
         with self.lock:

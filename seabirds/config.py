@@ -9,6 +9,7 @@ class Settings:
     username: str = "admin"
     password: str = ""
     history_limit: int = 50
+    editor_url: str = ""
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -17,4 +18,5 @@ class Settings:
             username=os.environ.get("SEABIRDS_USERNAME", "admin"),
             password=os.environ.get("SEABIRDS_PASSWORD", ""),
             history_limit=max(1, min(1000, int(os.environ.get("SEABIRDS_HISTORY_LIMIT", "50")))),
+            editor_url=os.environ.get("SEABIRDS_EDITOR_URL", ""),
         )

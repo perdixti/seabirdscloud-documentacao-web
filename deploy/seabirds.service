@@ -10,6 +10,8 @@ WorkingDirectory=/opt/seabirds/app
 EnvironmentFile=/etc/seabirds/seabirds.env
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONUNBUFFERED=1
+Environment=HOME=/var/lib/seabirds
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=/opt/seabirds/venv/bin/python -m seabirds
 Restart=on-failure
 RestartSec=5

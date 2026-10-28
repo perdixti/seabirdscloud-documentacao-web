@@ -1,5 +1,6 @@
 import base64
 import binascii
+import errno
 import io
 import re
 import secrets
@@ -23,6 +24,7 @@ from . import __version__
 from .config import Settings
 from .generator_api import generator_router
 from .models import DocumentInput
+from .paths import server_user
 from .renderer import ASSET_PATTERN, render_document
 from .storage import ConflictError, Store
 
@@ -127,6 +129,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(OSError)
     async def file_error(request, exc):
+        if exc.errno in {errno.EACCES, errno.EPERM, errno.EROFS}:
+            return JSONResponse(
+                {
+                    "detail": "Sem permissão de acesso ou escrita para o usuário "
+                    + server_user()
+                    + ". Confira as permissões da pasta e, no serviço Linux, a liberação do diretório do site. Caminho: "
+                    + str(exc.filename or "não informado")
+                },
+                422,
+            )
         return JSONResponse({"detail": f"Não foi possível acessar o arquivo ou pasta: {exc}"}, 422)
 
     def get_document(document_id):

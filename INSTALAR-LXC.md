@@ -1,13 +1,15 @@
-# Instalar SeaBirdsCloud 2.4.0 no LXC Debian 13
+# Instalar SeaBirdsCloud 2.6.0 no LXC Debian 13
+
+Para atualizar uma instalação existente ou preparar um clone em `/opt`, veja primeiro [Linux e LXC](docs/LINUX.md).
 
 Execute os comandos dentro de um LXC Debian 13 não privilegiado, como root. O instalador usa Python e systemd diretamente; Docker não é necessário. Reserve inicialmente 1–2 vCPU, 1 GB de RAM e disco suficiente para o repositório e suas imagens. Esse dimensionamento é uma sugestão inicial, sem medição no seu Proxmox.
 
 ## 1. Copiar e instalar
 
-Copie `SeaBirdsCloud-LXC-Debian13-2.4.0.zip` para `/root` do LXC. Em um terminal Windows com acesso SSH ao container, uma opção é:
+Copie `SeaBirdsCloud-LXC-Debian13-2.6.0.zip` para `/root` do LXC. Em um terminal Windows com acesso SSH ao container, uma opção é:
 
 ```powershell
-scp SeaBirdsCloud-LXC-Debian13-2.4.0.zip root@IP-DO-LXC:/root/
+scp SeaBirdsCloud-LXC-Debian13-2.6.0.zip root@IP-DO-LXC:/root/
 ```
 
 No terminal do LXC:
@@ -16,7 +18,7 @@ No terminal do LXC:
 apt-get update
 apt-get install -y unzip
 cd /root
-unzip SeaBirdsCloud-LXC-Debian13-2.4.0.zip
+unzip SeaBirdsCloud-LXC-Debian13-2.6.0.zip
 cd SeaBirdsCloud
 sha256sum -c MANIFEST.sha256
 bash deploy/install-debian.sh
@@ -60,7 +62,13 @@ Edite e salve os arquivos locais; depois use **Publicar alterações do site**, 
 
 ## 4. VS Code Web opcional
 
-No LXC, conecte um **code-server** com acesso à mesma pasta do clone. O README contém o procedimento; `deploy/seabirds-editor.service` e `deploy/code-server.yaml.example` são os exemplos de configuração. O instalador principal não instala nem inicia o editor opcional. O iniciador do VS Code instalado no Windows é específico daquela máquina.
+Para disponibilizar o editor no navegador, na mesma pasta extraída execute:
+
+```bash
+bash deploy/install-web.sh
+```
+
+Abra o gerador normalmente e clique em **Site e repositórios → Editor do site**. O editor estará em `/editor/`, na mesma porta 8000, com senha própria e acesso aos arquivos do site no servidor. O instalador principal sozinho não instala esse complemento. Consulte [Editor Web](docs/EDITOR-WEB.md) para atualização, acesso HTTP na EC2 e migração para a rede interna do Proxmox.
 
 ## Dados, manutenção e backup
 
@@ -81,4 +89,16 @@ Guarde backup de `/var/lib/seabirds`, `/srv/seabirds` e `/etc/seabirds` antes de
 
 O pacote contém código, templates, testes e instruções. Os rascunhos, o repositório do site, as imagens locais, senhas, tokens e o ambiente Python do Windows não estão incluídos. Esta é uma instalação nova no LXC; uma migração dos dados atuais é uma operação separada.
 
-O ZIP e a sintaxe dos scripts foram verificados no Windows. A instalação real no seu LXC/Proxmox ainda precisa ser executada e conferida nesse destino.
+### Erro `useradd: command not found`
+
+A revisão r1 normaliza o PATH do instalador, incluindo `/usr/sbin`, e instala explicitamente o pacote `passwd`, que fornece `useradd` no Debian. Se a primeira tentativa foi interrompida nesse ponto, continue na pasta do projeto, como root:
+
+```bash
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+apt-get install -y passwd
+bash deploy/install-debian.sh
+```
+
+Esses comandos também permitem repetir a instalação usando o clone anterior. As etapas já concluídas podem ser executadas novamente; o instalador preserva a configuração e os dados existentes.
+
+O ZIP e a sintaxe dos scripts foram verificados no Windows. A captura enviada durante a instalação real no LXC revelou a falta de `useradd` no PATH; a correção cobre o PATH e a dependência ausente. A instalação completa ainda precisa ser conferida nesse destino.

@@ -398,7 +398,7 @@ function pickServer(kind, target) {
     fileMode
       ? "Selecionar arquivo na máquina do aplicativo"
       : "Selecionar pasta na máquina do aplicativo",
-    `<p>Este seletor mostra os arquivos da máquina que executa o servidor.</p><div class="path-input"><input id="browse-path" aria-label="Caminho da pasta"><button id="browse-go">Ir</button><button id="browse-parent">Pasta acima</button></div><div id="browse-list" class="history-list file-picker"></div><div class="path-input"><input id="browse-new-dir" placeholder="Nome de nova pasta" aria-label="Nome de nova pasta"><button id="browse-create">Criar pasta</button></div><label id="browse-name-label">Nome do arquivo<input id="browse-name"></label><div class="modal-actions"><button id="browse-select" class="primary">Selecionar</button></div>`,
+    `<p>Informe o caminho da máquina que executa o aplicativo. Você pode digitar a pasta completa e clicar em Selecionar.</p><div class="path-input"><input id="browse-path" aria-label="Caminho da pasta"><button id="browse-go">Ir</button><button id="browse-parent">Pasta acima</button></div><p id="browse-status" class="field-hint" role="status"></p><div id="browse-list" class="history-list file-picker"></div><div class="path-input"><input id="browse-new-dir" placeholder="Nome de nova pasta" aria-label="Nome de nova pasta"><button id="browse-create">Criar pasta</button></div><label id="browse-name-label">Nome do arquivo<input id="browse-name"></label><div class="modal-actions"><button id="browse-select" class="primary">Selecionar</button></div>`,
   );
   $("#browse-name-label").hidden = !fileMode;
   $("#browse-name").value = fileMode
@@ -407,16 +407,48 @@ function pickServer(kind, target) {
     : "";
   return new Promise((resolve) => {
     let current = "",
-      parent = "";
-    $("#modal").addEventListener("close", () => resolve(false), { once: true });
+      parent = "",
+      loading = 0,
+      closed = false;
+    $("#modal").addEventListener(
+      "close",
+      () => {
+        closed = true;
+        loading++;
+        resolve(false);
+      },
+      { once: true },
+    );
     async function load(path) {
-      const result = await api("/api/generator/browse", {
-        method: "POST",
-        body: JSON.stringify({ path, kind }),
-      });
+      const sequence = ++loading;
+      $("#browse-status").textContent = "Abrindo pasta…";
+      let result;
+      try {
+        result = await api("/api/generator/browse", {
+          method: "POST",
+          body: JSON.stringify({ path, kind }),
+        });
+      } catch (error) {
+        if (!closed && sequence === loading) {
+          current = "";
+          $("#browse-list").replaceChildren();
+          $("#browse-status").textContent = error.message;
+        }
+        throw error;
+      }
+      if (closed || sequence !== loading) return false;
       current = result.path;
       parent = result.parent;
       $("#browse-path").value = current;
+      $("#browse-status").textContent =
+        result.access?.writable === false
+          ? "Somente leitura para o usuário " +
+            result.access.user +
+            ". A pasta pode ser selecionada para visualização; o administrador precisa liberar a escrita para editar."
+          : "Pasta aberta: " + current;
+      if (result.skipped)
+        $("#browse-status").textContent +=
+          " · " + result.skipped + " entrada(s) sem acesso.";
       const list = $("#browse-list");
       list.replaceChildren();
       for (const entry of result.entries) {
@@ -430,9 +462,13 @@ function pickServer(kind, target) {
         list.append(button);
       }
       if (!list.children.length) list.textContent = "Pasta vazia.";
+      return true;
     }
     on("#browse-go", () => load($("#browse-path").value));
     on("#browse-parent", () => load(parent));
+    $("#browse-path").oninput = () => {
+      loading++;
+    };
     $("#browse-path").onkeydown = (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
@@ -440,6 +476,7 @@ function pickServer(kind, target) {
       }
     };
     on("#browse-create", async () => {
+      if (!(await load($("#browse-path").value))) return;
       const name = $("#browse-new-dir").value.trim();
       if (!name || /[\\/]/.test(name) || name === "." || name === "..")
         throw Error("Informe apenas o nome da nova pasta.");
@@ -452,7 +489,8 @@ function pickServer(kind, target) {
       $("#browse-new-dir").value = "";
       await load(result.path);
     });
-    on("#browse-select", () => {
+    on("#browse-select", async () => {
+      if (!(await load($("#browse-path").value))) return;
       if (!current) throw Error("Selecione uma pasta.");
       let path = current;
       if (fileMode) {
@@ -466,7 +504,20 @@ function pickServer(kind, target) {
       resolve(true);
       $("#modal").close();
     });
-    guarded(() => load(target?.value || ""));
+    guarded(async () => {
+      let initial = target?.value || "";
+      if (fileMode && initial) initial = initial.replace(/[^\\/]+$/, "");
+      $("#browse-path").value = initial;
+      try {
+        await load(initial);
+      } catch (error) {
+        if (initial) {
+          await load("");
+          $("#browse-status").textContent =
+            "O caminho salvo não foi encontrado neste servidor. Informe a pasta correta.";
+        } else throw error;
+      }
+    });
   });
 }
 async function loadTemplate() {

@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from .filesystem import WEB_EXTENSIONS, ProjectFiles, local_path, read_utf8, rewrite_css_root_paths
 from .github_api import github_router
 from .models import DocumentInput, GenerationSettings
+from .paths import directory_entries, folder_access
 from .renderer import render_document
 from .site_api import site_router
 
@@ -77,7 +78,8 @@ def generator_router(settings):
             "template_path": str(files.default_template),
             "native_dialogs": bool(native_available(request)),
             "local_file_open": bool(native_available(request)),
-            "history_dir": str(Path.cwd() / "historico"),
+            "history_dir": str(settings.data_dir / "historico"),
+            "platform": "windows" if os.name == "nt" else "posix",
         }
 
     @router.post("/template")
@@ -328,13 +330,12 @@ def generator_router(settings):
                 ),
                 settings.data_dir,
             )
-        while not directory.exists() and directory != directory.parent:
-            directory = directory.parent
         if not directory.is_dir():
-            raise ValueError("Pasta não encontrada.")
+            raise ValueError("Pasta não encontrada no servidor: " + str(directory))
         entries = []
-        for path in sorted(directory.iterdir(), key=lambda p: (not p.is_dir(), p.name.casefold())):
-            if path.is_dir():
+        candidates, skipped = directory_entries(directory)
+        for path, is_directory in candidates:
+            if is_directory:
                 entries.append({"name": path.name, "path": str(path), "directory": True})
             elif payload.kind in {"template", "output"} and path.suffix.lower() in {
                 ".html",
@@ -345,7 +346,13 @@ def generator_router(settings):
                 entries.append({"name": path.name, "path": str(path), "directory": False})
             if len(entries) >= 1000:
                 break
-        return {"path": str(directory), "parent": str(directory.parent), "entries": entries}
+        return {
+            "path": str(directory),
+            "parent": str(directory.parent),
+            "entries": entries,
+            "skipped": skipped,
+            "access": folder_access(directory),
+        }
 
     @router.post("/mkdir")
     def mkdir(payload: PathInput, request: Request):

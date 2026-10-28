@@ -9,6 +9,24 @@ export class SiteManager {
     this.trash = [];
     this.checked = new Set();
     this.editor = null;
+    this.loading = 0;
+    $("#site-directory").oninput = () => {
+      this.loading++;
+      this.root = "";
+      this.info = null;
+      this.pages = [];
+      this.checked.clear();
+      this.draw();
+      $("#site-status").textContent =
+        "Pressione Enter ou Atualizar páginas para abrir esta pasta.";
+    };
+    $("#site-directory").onkeydown = (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        this.guard(() => this.load());
+      }
+    };
+    $("#site-directory").onchange = () => this.guard(() => this.load());
     document
       .querySelector('[data-tab="site-tab"]')
       .addEventListener("click", () => this.guard(() => this.load()));
@@ -125,12 +143,17 @@ export class SiteManager {
     });
   }
   requireRoot() {
-    const value = $("#site-directory").value.trim() || this.root;
-    if (!value) throw Error("Selecione a raiz local do site.");
-    return value;
+    if (!this.root || $("#site-directory").value.trim() !== this.root)
+      throw Error(
+        "Abra a pasta do site com Enter ou Atualizar páginas antes de continuar.",
+      );
+    return this.root;
   }
   async load() {
+    const sequence = ++this.loading;
+    const requested = $("#site-directory").value.trim();
     const settings = await this.api("/api/generator/site/settings");
+    if (sequence !== this.loading) return;
     this.settings = settings;
     const recent = $("#site-recent");
     recent.replaceChildren();
@@ -146,17 +169,29 @@ export class SiteManager {
       recent.append(option);
     }
     const value =
-      $("#site-directory").value.trim() ||
-      this.root ||
-      settings.selected_root ||
-      this.repository();
+      requested || this.root || settings.selected_root || this.repository();
     if (!value) {
       $("#site-status").textContent =
         "Escolha a pasta do index.html ou clone um repositório.";
       return;
     }
     $("#site-status").textContent = "Lendo páginas locais…";
-    const result = await this.post("pages", { root: value });
+    let result;
+    try {
+      result = await this.post("pages", { root: value });
+    } catch (error) {
+      if (sequence === this.loading) {
+        this.root = "";
+        this.info = null;
+        this.pages = [];
+        this.trash = [];
+        this.checked.clear();
+        this.draw();
+        $("#site-status").textContent = error.message;
+      }
+      throw error;
+    }
+    if (sequence !== this.loading) return;
     this.root = result.root;
     this.info = result;
     this.pages = result.pages;
@@ -177,7 +212,12 @@ export class SiteManager {
         : "") +
       result.pages.length +
       " página(s) local(is)" +
-      (result.has_index ? "" : " · index.html ausente na raiz");
+      (result.has_index ? "" : " · index.html ausente na raiz") +
+      (result.unreadable?.length
+        ? " · " +
+          result.unreadable.length +
+          " arquivo(s)/pasta(s) sem acesso; confira as permissões."
+        : "");
     $("#site-show-trash").textContent =
       "Lixeira de páginas (" + result.trash.length + ")";
     this.draw();
@@ -189,6 +229,35 @@ export class SiteManager {
     );
   }
   draw() {
+    const ready = Boolean(this.root && this.info);
+    const writable = this.info?.access?.writable !== false;
+    $("#site-new-document").disabled = !ready || !writable;
+    $("#site-publish").disabled =
+      !ready || !writable || Boolean(this.info?.repository_error);
+    $("#site-open-editor").disabled = !ready;
+    const access = $("#site-access");
+    access.replaceChildren();
+    access.hidden = !ready || (writable && !this.info.repository_error);
+    if (!access.hidden) {
+      const explanation = document.createElement("p");
+      explanation.textContent = !writable
+        ? "A pasta está em modo somente leitura para o usuário " +
+          this.info.access.user +
+          ". Para editar e publicar, libere o acesso desta pasta no servidor."
+        : this.info.repository_error;
+      access.append(explanation);
+      if (
+        (!writable || this.info.repository_error?.includes("outro usuário")) &&
+        this.info.access?.setup_command
+      ) {
+        const hint = document.createElement("p"),
+          command = document.createElement("pre");
+        hint.textContent =
+          "Como administrador do Linux, execute uma vez para preparar esta pasta:";
+        command.textContent = this.info.access.setup_command;
+        access.append(hint, command);
+      }
+    }
     const list = $("#site-pages");
     list.replaceChildren();
     for (const page of this.filtered()) {
@@ -224,6 +293,8 @@ export class SiteManager {
         control.title = label;
         control.setAttribute("aria-label", label);
         control.className = css;
+        if (!writable && ["edit", "trash"].includes(name))
+          control.disabled = true;
         control.onclick = () => this.guard(callback);
         actions.append(control);
       };
@@ -252,7 +323,8 @@ export class SiteManager {
   }
   selection() {
     $("#site-selection").textContent = this.checked.size + " selecionada(s)";
-    $("#site-trash-selected").disabled = !this.checked.size;
+    $("#site-trash-selected").disabled =
+      !this.checked.size || this.info?.access?.writable === false;
   }
   async preview(path) {
     const result = await this.post("pages/view", {
@@ -423,7 +495,7 @@ export class SiteManager {
           await this.load();
           this.modal(
             "Clone local concluído",
-            '<p id="site-clone-result" class="image-path"></p><div class="modal-actions"><button id="site-use-clone" class="primary">Gerenciar este site</button><button id="site-edit-clone">Abrir no VS Code Web local</button></div>',
+            '<p id="site-clone-result" class="image-path"></p><div class="modal-actions"><button id="site-use-clone" class="primary">Gerenciar este site</button><button id="site-edit-clone">Abrir no editor do site</button></div>',
           );
           $("#site-clone-result").textContent = result.root;
           $("#site-use-clone").onclick = () => $("#modal").close();
@@ -437,11 +509,14 @@ export class SiteManager {
     const settings = await this.api("/api/generator/site/settings");
     this.settings = settings;
     this.modal(
-      "VS Code Web nos arquivos locais",
-      '<p>O editor deve executar na mesma máquina do gerador, usando a mesma pasta do clone.</p><div class="stack"><label>Tipo de editor<select id="site-editor-kind"><option value="code-server">code-server (LXC/Linux)</option><option value="vscode-serve-web">VS Code serve-web (local)</option></select></label><label>URL do editor local<input id="site-editor-url" placeholder="http://127.0.0.1:8765"></label></div><div class="modal-actions"><button id="site-save-editor" class="primary">Salvar conexão</button><button id="site-native-editor">Iniciar VS Code Web neste computador</button></div><p id="site-native-note" class="field-hint"></p>',
+      "Editor dos arquivos do site",
+      '<p>Abra o editor no navegador para editar os mesmos arquivos usados pelo gerador.</p><div class="stack"><label>Tipo de editor<select id="site-editor-kind"><option value="code-server">code-server (servidor Linux)</option><option value="vscode-serve-web">VS Code serve-web (neste computador)</option></select></label><label>Endereço do editor<input id="site-editor-url" placeholder="https://documentacao.seudominio.com/editor/"></label></div><div class="modal-actions"><button id="site-save-editor" class="primary">Salvar conexão</button><button id="site-native-editor">Iniciar VS Code Web neste computador</button></div><p id="site-native-note" class="field-hint"></p>',
     );
     $("#site-editor-url").value = settings.editor_url || "";
     $("#site-editor-kind").value = settings.editor_kind || "code-server";
+    $("#site-editor-url").readOnly = !!settings.editor_managed;
+    $("#site-editor-kind").disabled = !!settings.editor_managed;
+    $("#site-save-editor").hidden = !!settings.editor_managed;
     $("#site-save-editor").onclick = () =>
       this.busy($("#site-save-editor"), async () => {
         await this.post("settings/editor", {
@@ -449,12 +524,14 @@ export class SiteManager {
           kind: $("#site-editor-kind").value,
         });
         $("#modal").close();
-        this.toast("Conexão com o editor local salva.");
+        this.toast("Conexão com o editor salva.");
       });
-    $("#site-native-editor").hidden = !settings.local_editor_available;
-    $("#site-native-note").textContent = settings.local_editor_available
+    $("#site-native-editor").hidden = !settings.local_editor_available || !!settings.editor_managed;
+    $("#site-native-note").textContent = settings.editor_managed
+      ? "Conexão configurada no servidor. Use Editor do site para abrir a pasta selecionada no navegador."
+      : settings.local_editor_available
       ? "O VS Code instalado pode servir um editor Web local. A primeira execução pede a aceitação dos termos do servidor."
-      : "No LXC, conecte um code-server que tenha acesso à mesma pasta do site.";
+      : "Informe o endereço do editor hospedado no servidor. Ele abrirá no navegador e salvará os arquivos na mesma pasta do site.";
     $("#site-native-editor").onclick = () => this.nativeEditorForm();
   }
   nativeEditorForm() {
@@ -481,9 +558,10 @@ export class SiteManager {
       return this.editorSettings();
     }
     this.modal(
-      "Abrir VS Code Web local",
-      '<p>O editor abrirá a mesma pasta usada pelo gerador. Salve os arquivos e use Atualizar páginas para ver as mudanças.</p><div class="modal-actions"><a id="site-editor-open-link" class="button-link primary" target="_blank" rel="noopener noreferrer">Abrir editor local</a></div>',
+      "Abrir editor do site",
+      '<p>O editor abrirá no navegador a pasta do site selecionada. Salve os arquivos e use Atualizar páginas para ver as mudanças.</p><p id="site-editor-folder" class="image-path"></p><div class="modal-actions"><a id="site-editor-open-link" class="button-link primary" target="_blank" rel="noopener noreferrer">Abrir editor do site</a></div>',
     );
     $("#site-editor-open-link").href = result.url;
+    $("#site-editor-folder").textContent = result.root;
   }
 }

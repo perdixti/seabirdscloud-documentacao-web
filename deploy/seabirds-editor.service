@@ -8,6 +8,8 @@ User=seabirds
 Group=seabirds
 WorkingDirectory=/srv/seabirds
 Environment=HOME=/var/lib/seabirds
+Environment=SHELL=/bin/bash
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=/usr/bin/code-server --config /etc/seabirds/code-server.yaml --user-data-dir /var/lib/seabirds/code-server /srv/seabirds
 Restart=on-failure
 RestartSec=5

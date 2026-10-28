@@ -49,7 +49,7 @@ class LocalEditorInput(SiteInput):
 
 def site_router(settings, files, filesystem_access):
     router = APIRouter(prefix="/site")
-    workspace = SiteWorkspace(settings.data_dir, files)
+    workspace = SiteWorkspace(settings.data_dir, files, managed_editor_url=settings.editor_url)
 
     def local_request(request):
         return bool(

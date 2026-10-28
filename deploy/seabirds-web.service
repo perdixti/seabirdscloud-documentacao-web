@@ -1,0 +1,24 @@
+[Unit]
+Description=SeaBirdsCloud - acesso ao gerador e editor pelo navegador
+After=network.target seabirds.service seabirds-editor.service
+Wants=seabirds.service seabirds-editor.service
+
+[Service]
+Type=simple
+User=caddy
+Group=caddy
+Environment=HOME=/var/lib/caddy
+ExecStart=/usr/bin/caddy run --config /etc/seabirds/web.Caddyfile --adapter caddyfile
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=10
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/caddy
+
+[Install]
+WantedBy=multi-user.target

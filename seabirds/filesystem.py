@@ -4,6 +4,7 @@ import hashlib
 import io
 import os
 import re
+import stat
 import tempfile
 import threading
 import time
@@ -18,6 +19,7 @@ from PIL import Image, ImageOps
 
 from .image_store import ImageStore
 from .models import DocumentInput, GenerationSettings
+from .paths import local_path as local_path
 from .renderer import render_document
 from .tools import TEXT_EXTENSIONS, format_html
 
@@ -86,16 +88,6 @@ def rewrite_css_root_paths(css, prefix):
     )
 
 
-def local_path(value: str) -> Path:
-    if not value.strip() or "\x00" in value:
-        raise ValueError("Informe um caminho válido.")
-    if os.name != "nt" and re.match(r"^(?:[A-Za-z]:[\\/]|\\\\)", value.strip()):
-        raise ValueError(
-            "Este servidor usa Linux. Informe um caminho do servidor, como /srv/seabirds/imagens."
-        )
-    return Path(value.strip()).expanduser().resolve()
-
-
 def read_utf8(path: Path, limit=2_000_000) -> str:
     if path.stat().st_size > limit:
         raise ValueError(f"Arquivo excede o limite de {limit} bytes: {path.name}")
@@ -107,6 +99,8 @@ def atomic_write(path: Path, content: str):
     descriptor, temporary = tempfile.mkstemp(prefix=".seabirds-", dir=path.parent)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as stream:
+            if os.name == "posix" and path.is_file():
+                os.fchmod(stream.fileno(), stat.S_IMODE(path.stat().st_mode) & 0o777)
             stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
