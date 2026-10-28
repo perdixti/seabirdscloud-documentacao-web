@@ -17,6 +17,8 @@ from urllib.parse import quote, urlencode
 from uuid import uuid4
 
 from .filesystem import TemplateAssets, atomic_write, local_path, preview_asset_path, read_utf8
+from .github_settings import GitHubSettings
+from .project_catalog import CATALOG_FILENAME, IMAGE_EXTENSIONS, CatalogSource, ProjectCatalog
 
 PUBLISH_EXTENSIONS = {
     ".html",
@@ -55,16 +57,19 @@ class GitHubPublisher:
         )
         self.plans = {}
         self.lock = threading.RLock()
-        self.token = os.environ.get("SEABIRDS_GITHUB_TOKEN", "").strip()
-        if self.token and not re.fullmatch(r"[!-~]+", self.token):
+        self.environment_token = os.environ.get("SEABIRDS_GITHUB_TOKEN", "").strip()
+        if self.environment_token and not re.fullmatch(r"[!-~]+", self.environment_token):
             raise ValueError("SEABIRDS_GITHUB_TOKEN contém caracteres inválidos.")
+        self.preferences = GitHubSettings(directory)
+        self.token = self.preferences.token(self.environment_token)
         self.workflow = os.environ.get("SEABIRDS_GITHUB_WORKFLOW", "deploy.yml")
         if not re.fullmatch(r"[\w.-]+\.ya?ml", self.workflow):
             raise ValueError(
                 "SEABIRDS_GITHUB_WORKFLOW precisa ser o nome de um arquivo .yml ou .yaml."
             )
 
-    def environment(self):
+    def environment(self, token=None):
+        token = self.token if token is None else token
         env = os.environ.copy()
         # Repositório e índice são definidos por cada operação, nunca por um ambiente herdado.
         for key in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR"):
@@ -72,8 +77,9 @@ class GitHubPublisher:
         env.update(GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="Never", GIT_LITERAL_PATHSPECS="1")
         env["LC_ALL"] = "C"
         env.setdefault("GIT_SSH_COMMAND", "ssh -o BatchMode=yes")
-        if self.token:
-            env["SEABIRDS_GITHUB_TOKEN"] = self.token
+        env.pop("SEABIRDS_GITHUB_TOKEN", None)
+        if token:
+            env["SEABIRDS_GITHUB_TOKEN"] = token
             python = Path(sys.executable).as_posix()
             helper = Path(__file__).with_name("github_askpass.py").as_posix()
             launcher = self.directory / ".github-askpass.sh"
@@ -85,24 +91,32 @@ class GitHubPublisher:
             env["GIT_ASKPASS"] = launcher.resolve().as_posix()
         return env
 
-    def clean_error(self, text):
-        if self.token:
-            text = text.replace(self.token, "[oculto]")
+    def clean_error(self, text, token=""):
+        for secret in {self.token, self.environment_token, token} - {""}:
+            text = text.replace(secret, "[oculto]")
         return re.sub(r"https?://[^\s/@]+(?::[^\s/@]*)?@", "https://[oculto]@", text).strip()[
             -1500:
         ]
 
-    def git(self, root, *args, data=None, check=True, timeout=45):
+    def git(self, root, *args, data=None, check=True, timeout=45, identity=None):
+        token = self.token
         command = ["git", "-c", "core.quotepath=false"]
-        if self.token:
+        if token:
             command += ["-c", "credential.helper="]
+        if identity:
+            command += [
+                "-c",
+                "user.name=" + identity["name"],
+                "-c",
+                "user.email=" + identity["email"],
+            ]
         command += ["-C", str(root), *args]
         try:
             result = subprocess.run(
                 command,
                 input=data,
                 capture_output=True,
-                env=self.environment(),
+                env=self.environment(token),
                 timeout=timeout,
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
             )
@@ -114,17 +128,70 @@ class GitHubPublisher:
             ) from exc
         if check and result.returncode:
             detail = self.clean_error(
-                (result.stderr or result.stdout).decode("utf-8", errors="replace")
+                (result.stderr or result.stdout).decode("utf-8", errors="replace"), token
             )
             if "dubious ownership" in detail:
                 raise ValueError(
                     "O clone pertence a outro usuário do Linux. Prepare a pasta para o usuário do aplicativo com seabirds-configure-site antes de publicar."
+                )
+            if (
+                "could not read Username for 'https://github.com'" in detail
+                or "Authentication failed for 'https://github.com" in detail
+            ):
+                raise ValueError(
+                    "Configure um token com acesso ao repositório em Site e repositórios → Configurar GitHub."
                 )
             raise ValueError("Falha no Git: " + detail)
         return result
 
     def text(self, root, *args):
         return self.git(root, *args).stdout.decode("utf-8").strip()
+
+    def author(self, root):
+        defaults = self.preferences.author
+        return {
+            key: self.git(root, "config", "--get", "user." + key, check=False)
+            .stdout.decode("utf-8")
+            .strip()
+            or defaults[key]
+            for key in ("name", "email")
+        }
+
+    def settings_status(self, directory=""):
+        with self.lock:
+            result = self.preferences.status(self.token)
+            if directory:
+                try:
+                    root = self.root(directory)
+                    repository = self.repository(root)[0]
+                    result.update(
+                        directory=str(root),
+                        repository=repository,
+                        repository_author=self.author(root),
+                    )
+                except ValueError as exc:
+                    result["repository_error"] = str(exc)
+            return result
+
+    def configure(self, name, email, action="keep", token="", directory=""):
+        with self.lock:
+            author = self.preferences.identity(name, email)
+            root = self.root(directory) if directory else None
+            if root:
+                self.repository(root)
+            # Valida e grava o segredo antes de alterar o Git; nenhum valor secreto retorna.
+            self.preferences.update(name, email, action, token)
+            self.token = self.preferences.token(self.environment_token)
+            if root and author["name"]:
+                try:
+                    for key, value in author.items():
+                        self.git(root, "config", "--local", "--", "user." + key, value)
+                except ValueError as exc:
+                    raise ValueError(
+                        "As preferências foram salvas, mas não foi possível configurar o autor neste clone. Confira as permissões da pasta e tente salvar novamente. "
+                        + str(exc)
+                    ) from exc
+            return self.settings_status(str(root) if root else "")
 
     def root(self, directory, output_path=""):
         # A saída define o repositório; um caminho salvo antigo não pode publicar o gerador.
@@ -185,6 +252,30 @@ class GitHubPublisher:
                     paths.append(image)
         return {path.relative_to(root).as_posix() for path in paths if path.is_relative_to(site)}
 
+    def catalog_images(self, root, site, changes):
+        result = set()
+        state_path = self.directory / "site-workspace.json"
+        state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
+        config = state.get("catalogs", {}).get(str(site), {})
+        try:
+            listing = ProjectCatalog.site_path(site, config.get("page", "paginas/projetos.html"))
+            for change in changes:
+                path = root / change["path"]
+                if path.name != CATALOG_FILENAME or not path.is_file():
+                    continue
+                source = CatalogSource(read_utf8(path, 2_000_000))
+                for entry in source.entries.values():
+                    try:
+                        image = ProjectCatalog.reference(
+                            site, listing, entry["imagem"], IMAGE_EXTENSIONS
+                        )[1]
+                        result.add(image.relative_to(root).as_posix())
+                    except ValueError:
+                        continue
+        except ValueError:
+            pass
+        return result
+
     def repository(self, root):
         origins = self.text(root, "remote", "get-url", "--all", "origin").splitlines()
         pushes = self.text(root, "remote", "get-url", "--push", "--all", "origin").splitlines()
@@ -224,7 +315,7 @@ class GitHubPublisher:
                 part in {"..", ".git", ".github"} or part.startswith(".") for part in path.parts
             )
             and not any(ord(char) < 32 for char in name)
-            and path.suffix.lower() in PUBLISH_EXTENSIONS
+            and (path.suffix.lower() in PUBLISH_EXTENSIONS or path.name == CATALOG_FILENAME)
         )
 
     def changes(self, root, site=None):
@@ -251,7 +342,7 @@ class GitHubPublisher:
                 )
         if len(result) > 300:
             raise ValueError(
-                "Há mais de 300 HTML/imagens alterados. Divida a publicação em partes pelo Git."
+                "Há mais de 300 arquivos publicáveis alterados. Divida a publicação em partes pelo Git."
             )
         return result
 
@@ -271,7 +362,7 @@ class GitHubPublisher:
             else None
         )
         diff = "Imagem binária: confira o arquivo na pasta do site."
-        if path.suffix.lower() in {".html", ".htm", ".svg"}:
+        if path.suffix.lower() in {".html", ".htm", ".svg"} or path.name == CATALOG_FILENAME:
             old = self.git(root, "cat-file", "blob", f"{head}:{name}", check=False).stdout
             before = old.decode("utf-8", errors="replace").splitlines(True)
             after = (raw or b"").decode("utf-8", errors="replace").splitlines(True)
@@ -320,8 +411,11 @@ class GitHubPublisher:
                 ).split(),
             )
             recommended = None if site_only else self.recommended_files(root, site, document)
+            changes = self.changes(root, site)
+            if recommended is not None:
+                recommended.update(self.catalog_images(root, site, changes))
             entries, total = {}, 0
-            for change in self.changes(root, site):
+            for change in changes:
                 snapshot = self.snapshot(root, head, change["path"])
                 total += snapshot["size"]
                 if total > 100 * 1024 * 1024:
@@ -331,7 +425,9 @@ class GitHubPublisher:
                 entries[change["path"]] = {
                     **change,
                     **snapshot,
-                    "selected": recommended is None or change["path"] in recommended,
+                    "selected": recommended is None
+                    or change["path"] in recommended
+                    or PurePosixPath(change["path"]).name == CATALOG_FILENAME,
                 }
             token = uuid4().hex
             now = time.monotonic()
@@ -350,16 +446,7 @@ class GitHubPublisher:
                 "expires": now + 900,
                 "result": None,
             }
-            name = (
-                self.git(root, "config", "--get", "user.name", check=False)
-                .stdout.decode("utf-8")
-                .strip()
-            )
-            email = (
-                self.git(root, "config", "--get", "user.email", check=False)
-                .stdout.decode("utf-8")
-                .strip()
-            )
+            author = self.author(root)
             return {
                 "token": token,
                 "root": str(root),
@@ -372,7 +459,7 @@ class GitHubPublisher:
                 "remote_head": remote_head,
                 "ahead": ahead,
                 "behind": behind,
-                "author": {"name": name, "email": email},
+                "author": author,
                 "files": [
                     {key: value for key, value in item.items() if key not in {"digest", "oid"}}
                     for item in entries.values()
@@ -431,6 +518,11 @@ class GitHubPublisher:
                 raise ValueError("Informe uma mensagem de commit válida.")
             self.verify(plan)
             root = plan["root"]
+            author = self.author(root)
+            if not author["name"] or not author["email"]:
+                raise ValueError(
+                    "Configure o nome e o e-mail do autor em Configurar GitHub antes de publicar."
+                )
             if self.remote_head(root) != plan["head"]:
                 raise ValueError(
                     "A main local e a remota precisam estar na mesma revisão. Atualize a main ou reenvie o commit pendente."
@@ -455,6 +547,7 @@ class GitHubPublisher:
                 "-m",
                 message.strip(),
                 data=paths,
+                identity=author,
             )
             sha = self.text(root, "rev-parse", "HEAD")
             changed = self.git(

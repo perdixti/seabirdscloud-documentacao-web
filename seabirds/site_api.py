@@ -20,6 +20,34 @@ class PageSaveInput(PageInput):
     html: str = Field(max_length=2_000_000)
 
 
+class CatalogInput(SiteInput):
+    path: str = Field(default="", max_length=4096)
+    page: str = Field(default="", max_length=4096)
+    title: str = Field(default="", max_length=200)
+    output_path: str = Field(default="", max_length=4096)
+    image_path: str = Field(default="", max_length=4096)
+
+
+class CatalogSaveInput(CatalogInput):
+    version: str = Field(pattern=r"^[a-f0-9]{64}$")
+    entry_id: str = Field(default="", pattern=r"^(?:[0-9]+:[0-9]+)?$")
+    categoria: str = Field(max_length=100)
+    titulo: str = Field(max_length=200)
+    imagem: str = Field(max_length=4096)
+    descricao: str = Field(max_length=2000)
+    link: str = Field(max_length=4096)
+
+
+class CatalogRemoveInput(CatalogInput):
+    version: str = Field(pattern=r"^[a-f0-9]{64}$")
+    entry_id: str = Field(pattern=r"^[0-9]+:[0-9]+$")
+    confirm: Literal[True]
+
+
+class CatalogUndoInput(CatalogInput):
+    version: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
 class PageSelection(BaseModel):
     path: str = Field(min_length=1, max_length=4096)
     version: str = Field(pattern=r"^[a-f0-9]{64}$")
@@ -47,9 +75,11 @@ class LocalEditorInput(SiteInput):
     port: int = Field(default=8765, ge=1024, le=65535)
 
 
-def site_router(settings, files, filesystem_access):
+def site_router(settings, files, filesystem_access, publisher=None):
     router = APIRouter(prefix="/site")
-    workspace = SiteWorkspace(settings.data_dir, files, managed_editor_url=settings.editor_url)
+    workspace = SiteWorkspace(
+        settings.data_dir, files, publisher=publisher, managed_editor_url=settings.editor_url
+    )
 
     def local_request(request):
         return bool(
@@ -76,6 +106,43 @@ def site_router(settings, files, filesystem_access):
     def pages(payload: SiteInput, request: Request):
         filesystem_access(request)
         return workspace.pages(payload.root)
+
+    @router.post("/catalog/read")
+    def catalog_read(payload: CatalogInput, request: Request):
+        filesystem_access(request)
+        return workspace.read_catalog(
+            payload.root, payload.path, payload.page, payload.model_dump()
+        )
+
+    @router.post("/catalog/save")
+    def catalog_save(payload: CatalogSaveInput, request: Request):
+        filesystem_access(request)
+        return workspace.save_catalog(
+            payload.root,
+            payload.path,
+            payload.page,
+            payload.version,
+            payload.model_dump(),
+            payload.entry_id,
+        )
+
+    @router.post("/catalog/remove")
+    def catalog_remove(payload: CatalogRemoveInput, request: Request):
+        filesystem_access(request)
+        return workspace.save_catalog(
+            payload.root,
+            payload.path,
+            payload.page,
+            payload.version,
+            {},
+            payload.entry_id,
+            remove=True,
+        )
+
+    @router.post("/catalog/undo")
+    def catalog_undo(payload: CatalogUndoInput, request: Request):
+        filesystem_access(request)
+        return workspace.undo_catalog(payload.root, payload.path, payload.page, payload.version)
 
     @router.post("/pages/read")
     def read(payload: PageInput, request: Request):

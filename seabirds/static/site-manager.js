@@ -10,6 +10,8 @@ export class SiteManager {
     this.checked = new Set();
     this.editor = null;
     this.loading = 0;
+    $("#site-github-settings").onclick = () => this.guard(() => this.configureGitHub($("#site-directory").value.trim()));
+    $("#site-catalog").onclick = () => this.guard(() => this.openCatalog(this.requireRoot()));
     $("#site-directory").oninput = () => {
       this.loading++;
       this.root = "";
@@ -468,6 +470,14 @@ export class SiteManager {
       destination: $("#site-clone-destination").value.trim(),
       author_name: $("#site-clone-author").value.trim(),
       author_email: $("#site-clone-email").value.trim(),
+    });
+    const setup = document.createElement("button");
+    setup.textContent = "Configurar GitHub";
+    setup.id = "site-clone-settings";
+    $("#site-confirm-clone").after(setup);
+    setup.onclick = () => this.guard(async () => {
+      const current = data();
+      return this.configureGitHub("", () => this.cloneForm(current), () => this.cloneForm(current));
     });
     $("#site-clone-parent").onclick = () =>
       this.guard(async () => {

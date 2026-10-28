@@ -1,5 +1,37 @@
 # Validação — fluxo de geração HTML
 
+Data: 28/10/2026. Versão 2.8.0: catálogo das documentações pelo navegador.
+
+## Executado na versão 2.8.0
+
+- Suíte de 154 casos: Linux/Python 3.12.3 e 3.13.18 com **153 aprovados e 1 ignorado**; Windows/Python 3.12.14 com **147 aprovados e 7 ignorados**. Sintaxe JavaScript e estilo Python conferidos.
+- Catálogo: adição em categoria existente/nova, edição/mudança de categoria sem duplicar a página, remoção de card mantendo HTML/imagens, cópia anterior e desfazer depois de reiniciar. Conflitos com edições externas recusam sobrescrever e preservam os campos no formulário.
+- Preservação de comentários, BOM/CRLF, nomes com Unicode/emoji, objetos com propriedades extras e código fora dos dados. Casos de listas vazias, numa única linha e com vírgulas finais. A leitura não executa o JavaScript; campos calculados ou sintaxe inválida são recusados.
+- URLs: caminhos relativos à página do catálogo, conversão de caminhos físicos Windows/Linux, espaços/acentos codificados, recusa de protocolos externos e de caminhos fora da raiz. Textos novos escapados para o HTML dos cards.
+- Git: diferença textual e pré-seleção do catálogo e das capas alteradas. Um teste publica HTML, PNG e catálogo juntos em remoto bare local, preservando README previamente no stage e excluindo outros JavaScript do escopo.
+- DOM: prefill, agrupamento/filtro, dados exibidos como texto, confirmação de descarte, erro de conflito sem perda de campos, salvar/editar/desfazer e revisão sem publicação automática.
+- Navegador em Linux: cópia do catálogo real com 21 categorias e 179 projetos; inclusão de um card de teste na categoria Linux e reabertura do cadastro após recarregar. A revisão mostrou HTML, capa e catálogo selecionados juntos. O arquivo original do site foi preservado. A interface adaptou o formulário com cabeçalho visível e área de conteúdo com rolagem.
+
+A EC2 e o LXC reais não foram acessados nem atualizados pelo agente. Nenhum commit de teste foi enviado ao GitHub nem disparou deploy no S3. Os testes de publicação usaram remotos bare locais, e a edição do catálogo real foi feita exclusivamente em cópia temporária.
+
+## Histórico da versão 2.7.0
+
+Data: 28/10/2026. Versão 2.7.0: nome, e-mail e token como segredo pelo gerenciamento web.
+
+## Executado na versão 2.7.0
+
+- Suíte de 135 casos: Linux/Python 3.12 com **134 aprovados e 1 ignorado**; Windows/Python 3.12 com **128 aprovados e 7 ignorados**. Estilo Python e sintaxe JavaScript conferidos.
+- Gravação do token com Fernet, persistência após reiniciar, permissões 0700/0600 no Linux, campo vazio mantendo o segredo, substituição e remoção sem reativar a variável de ambiente. Perda da chave permite salvar outro token pela própria interface.
+- API autenticada e com proteção de origem: segredo ausente das respostas de sucesso e de validação, inclusive entradas com tipo inválido, quebra de linha ou tamanho excessivo. Nenhum texto do token em catálogos de publicação.
+- Token e autor salvos pela API são usados imediatamente pelo clone e pela publicação na mesma aplicação. O teste cria um clone e faz commit/push somente num remoto bare local. O autor ausente falha antes de alterar o índice; configurar pela web desbloqueia a mesma revisão.
+- DOM isolado confirmou máscara de senha, campo vazio ao reabrir, manutenção sem reenviar o segredo, erro visível, revisão preservando seleção e mensagem, e ausência de publicação automática ao salvar as configurações.
+- Navegador contra Linux: abriu Configurar GitHub, salvou nome/e-mail/token sintéticos e confirmou configuração após recarregar. O campo de segredo ficou vazio. O repositório e os arquivos usados eram exclusivamente de teste. O formulário informa a limitação de transporte em HTTP.
+- Nova dependência validada: cryptography 50.0.2. A atualização do servidor inclui instalação de dependências com cópia do código anterior; dados, clone e configurações ficam preservados.
+
+O servidor real EC2/LXC não foi acessado nem atualizado pelo agente. Nenhum token real do usuário foi solicitado ou usado na validação e nenhum commit foi enviado ao GitHub/S3. O instalador de atualização completo com pip/systemd ainda não foi executado em uma instalação real; sua sintaxe Bash foi conferida.
+
+## Histórico da versão 2.6.0
+
 Data: 28/10/2026. Versão 2.6.0: editor hospedado no servidor, com acesso pelo navegador no mesmo endereço do gerador.
 
 ## Executado na versão 2.6.0

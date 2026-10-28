@@ -1,5 +1,7 @@
+from typing import Literal
+
 from fastapi import APIRouter, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 from .github import GitHubPublisher
 from .models import DocumentInput
@@ -23,9 +25,33 @@ class PublishInput(PlanInput):
     message: str = Field(min_length=1, max_length=500)
 
 
-def github_router(settings, filesystem_access):
+class GitHubSettingsInput(BaseModel):
+    directory: str = Field(default="", max_length=4096)
+    name: str = Field(default="", max_length=200)
+    email: str = Field(default="", max_length=254)
+    token_action: Literal["keep", "replace", "remove"] = "keep"
+    token: SecretStr = SecretStr("")
+
+
+def github_router(settings, filesystem_access, publisher=None):
     router = APIRouter(prefix="/github")
-    publisher = GitHubPublisher(settings.data_dir)
+    publisher = publisher or GitHubPublisher(settings.data_dir)
+
+    @router.get("/settings")
+    def github_settings(request: Request, directory: str = ""):
+        filesystem_access(request)
+        return publisher.settings_status(directory)
+
+    @router.post("/settings")
+    def configure_github(payload: GitHubSettingsInput, request: Request):
+        filesystem_access(request)
+        return publisher.configure(
+            payload.name,
+            payload.email,
+            payload.token_action,
+            payload.token.get_secret_value(),
+            payload.directory,
+        )
 
     @router.post("/review")
     def review(payload: ReviewInput, request: Request):

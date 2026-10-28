@@ -5,6 +5,7 @@ import { ImageManager } from "./image-manager.js";
 import { renderProjectHistory } from "./project-history.js";
 import { GitHubPublication } from "./github.js";
 import { SiteManager } from "./site-manager.js";
+import { openProjectCatalog } from "./catalog.js";
 
 const $ = (selector) => document.querySelector(selector);
 const optionsDefault = {
@@ -88,6 +89,8 @@ new SiteManager({
     $("#github-repo-path").value.trim() || $("#site-dir").value.trim(),
   pickFolder: (target) => pick("folder", target),
   publishSite: (root) => githubPublication.reviewSite(root),
+  configureGitHub: (root, afterSave, onBack) => githubPublication.configure(root, afterSave, onBack),
+  openCatalog: (root) => openProjectCatalog({api, modal, root, publishSite: value => githubPublication.reviewSite(value)}),
   newDocument: async (root) => {
     await imageQueue;
     if (state.dirty || state.id) await saveAll();
@@ -634,6 +637,17 @@ on("#choose-output", () => pick("output", $("#output-path")));
 on("#choose-site", () => pick("site", $("#site-dir")));
 on("#choose-github-repo", () => pick("folder", $("#github-repo-path")));
 on("#generate", generate);
+on("#document-catalog", async () => {
+  await imageQueue;
+  const document = data();
+  const root = document.generation.site_dir || document.generation.github_repository_path;
+  if (!root) throw Error("Selecione a raiz do site em Configurar arquivos antes de cadastrar a documentação.");
+  await openProjectCatalog({api, modal, root, publishSite: value => githubPublication.reviewSite(value), draft: {
+    title: document.title,
+    output_path: document.generation.output_path,
+    image_path: document.generation.images?.[0]?.path || "",
+  }});
+});
 on("#refresh-preview", () => refreshPreview());
 function updateViewLink() {
   const path = $("#output-path").value.trim().replace(/\\/g, "/");

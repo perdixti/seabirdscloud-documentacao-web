@@ -3,7 +3,10 @@ annotated-doc==0.0.5
 annotated-types==0.8.0
 anyio==4.15.1
 beautifulsoup4==4.15.0
+cffi==2.1.1
 click==8.5.0
+cryptography==50.0.2
+esprima==4.0.1
 fastapi==0.162.0
 h11==0.16.0
 idna==3.20
@@ -13,6 +16,7 @@ mdurl==0.1.2
 opentelemetry-api==1.45.1
 pillow==13.0.0
 pydantic==2.14.1
+pycparser==3.12
 pydantic_core==2.50.1
 python-multipart==0.0.32
 soupsieve==3.0.4

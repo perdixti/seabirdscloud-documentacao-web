@@ -12,21 +12,17 @@ O botão acrescenta a pasta selecionada ao endereço do editor. Salvar grava os 
 
 ## Instalar ou atualizar uma vez no servidor
 
-O arquivo ZIP contém a pasta `SeaBirdsCloud`. Extraia a versão 2.6.0 em uma pasta nova no servidor. Os passos abaixo são executados como root no console do próprio servidor; não é necessário manter nenhuma conexão aberta depois.
+O arquivo ZIP contém a pasta `SeaBirdsCloud`. Extraia a versão 2.8.0 em uma pasta nova no servidor. Os passos abaixo são executados como root no console do próprio servidor; não é necessário manter nenhuma conexão aberta depois.
 
 Se o gerador ainda não estiver instalado, no Debian 13 execute primeiro `bash deploy/install-debian.sh` na pasta extraída.
 
-Se já estiver instalado em `/opt/seabirds/app`, entre na pasta `SeaBirdsCloud` extraída e atualize somente o código:
+Se já estiver instalado em `/opt/seabirds/app`, entre na pasta `SeaBirdsCloud` extraída e execute:
 
 ```bash
-backup_dir=$(mktemp -d /root/seabirds-code-2.6.0.XXXXXXXX)
-cp -a /opt/seabirds/app/. "$backup_dir/"
-systemctl stop seabirds
-cp -a seabirds/. /opt/seabirds/app/seabirds/
-systemctl start seabirds
+bash deploy/update-app.sh
 ```
 
-Os dados, o clone do site e as configurações ficam fora dessa pasta. As dependências Python desta versão são as mesmas da 2.5.0.
+O atualizador guarda o código anterior, instala as dependências atualizadas e reinicia o gerador, preservando os dados, as configurações e a pasta do site. A versão 2.8.0 inclui as dependências de criptografia e de análise do catálogo JavaScript; não atualize apenas copiando os arquivos Python.
 
 Ainda na pasta extraída, habilite o acesso pelo navegador:
 

@@ -1,4 +1,4 @@
-# Instalar SeaBirdsCloud 2.6.0 no LXC Debian 13
+# Instalar SeaBirdsCloud 2.8.0 no LXC Debian 13
 
 Para atualizar uma instalação existente ou preparar um clone em `/opt`, veja primeiro [Linux e LXC](docs/LINUX.md).
 
@@ -6,10 +6,10 @@ Execute os comandos dentro de um LXC Debian 13 não privilegiado, como root. O i
 
 ## 1. Copiar e instalar
 
-Copie `SeaBirdsCloud-LXC-Debian13-2.6.0.zip` para `/root` do LXC. Em um terminal Windows com acesso SSH ao container, uma opção é:
+Copie `SeaBirdsCloud-LXC-Debian13-2.8.0.zip` para `/root` do LXC. Em um terminal Windows com acesso SSH ao container, uma opção é:
 
 ```powershell
-scp SeaBirdsCloud-LXC-Debian13-2.6.0.zip root@IP-DO-LXC:/root/
+scp SeaBirdsCloud-LXC-Debian13-2.8.0.zip root@IP-DO-LXC:/root/
 ```
 
 No terminal do LXC:
@@ -18,7 +18,7 @@ No terminal do LXC:
 apt-get update
 apt-get install -y unzip
 cd /root
-unzip SeaBirdsCloud-LXC-Debian13-2.6.0.zip
+unzip SeaBirdsCloud-LXC-Debian13-2.8.0.zip
 cd SeaBirdsCloud
 sha256sum -c MANIFEST.sha256
 bash deploy/install-debian.sh
@@ -47,7 +47,7 @@ URL:     https://github.com/perdixti/SeaBirdsCloud-site.git
 Destino: /srv/seabirds/SeaBirdsCloud-site
 ```
 
-O destino deve ser uma pasta nova. Configure antes a autenticação Git no LXC, como o usuário `seabirds`, usando SSH ou `SEABIRDS_GITHUB_TOKEN` em `/etc/seabirds/seabirds.env`. Reinicie o serviço após alterar esse arquivo. A autenticação do Windows não é transferida para o LXC. O README detalha as opções e permissões do token; não coloque a credencial na URL do clone.
+O destino deve ser uma pasta nova. Configure nome, e-mail e token em **Site e repositórios → Configurar GitHub** antes do clone. A aplicação já usa as credenciais salvas nas próximas operações, sem reiniciar. SSH e `SEABIRDS_GITHUB_TOKEN` continuam disponíveis como alternativas. A autenticação do Windows não é transferida para o LXC. O README detalha as opções e permissões do token; não coloque a credencial na URL do clone.
 
 Os caminhos usados no formulário pertencem ao LXC. Exemplo:
 

@@ -16,6 +16,7 @@ from .filesystem import atomic_write, local_path
 from .github import GitHubPublisher, github_repository
 from .local_editor import LocalEditor
 from .paths import folder_access
+from .project_catalog import ProjectCatalog
 from .storage import ConflictError
 
 
@@ -44,6 +45,7 @@ class SiteWorkspace:
         self.directory = Path(directory).resolve()
         self.catalog = self.directory / "site-workspace.json"
         self.files = files
+        self.catalog_editor = ProjectCatalog(files)
         self.managed_editor_url = self.validate_editor_url(managed_editor_url)
         self.publisher = publisher or GitHubPublisher(directory)
         self.lock = threading.RLock()
@@ -270,6 +272,69 @@ class SiteWorkspace:
                 )
             return {"path": relative, "html": content, "version": hashlib.sha256(raw).hexdigest()}
 
+    def catalog_options(self, root, path="", page=""):
+        saved = self.state.get("catalogs", {}).get(str(root), {})
+        return path or saved.get("path", "js/projetos-conteudo.js"), page or saved.get(
+            "page", "paginas/projetos.html"
+        )
+
+    def read_catalog(self, value, path="", page="", draft=None):
+        with self.lock:
+            root = self.root(value, register=True)
+            path, page = self.catalog_options(root, path, page)
+            result = self.catalog_editor.read(root, path, page, draft)
+            previous = self.state.get("catalogs", {}).get(str(root), {})
+            previous = (
+                previous if previous.get("path") == path and previous.get("page") == page else {}
+            )
+            self.state.setdefault("catalogs", {})[str(root)] = {
+                **previous,
+                "path": path,
+                "page": page,
+            }
+            self.persist()
+            return {
+                **result,
+                "can_undo": bool(previous.get("backup"))
+                and previous.get("version") == result["version"],
+            }
+
+    def save_catalog(self, value, path, page, version, data, entry_id="", remove=False):
+        with self.lock:
+            root = self.root(value)
+            result = self.catalog_editor.write(root, path, page, version, data, entry_id, remove)
+            self.state.setdefault("catalogs", {})[str(root)] = {
+                "path": path,
+                "page": page,
+                "backup": result["backup"],
+                "version": result["version"],
+            }
+            self.persist()
+            return {**result, "can_undo": True}
+
+    def undo_catalog(self, value, path, page, version):
+        with self.lock:
+            root = self.root(value)
+            previous = self.state.get("catalogs", {}).get(str(root), {})
+            if (
+                previous.get("path") != path
+                or previous.get("page") != page
+                or previous.get("version") != version
+                or not previous.get("backup")
+            ):
+                raise ValueError(
+                    "Recarregue o catálogo para consultar a última alteração que pode ser desfeita."
+                )
+            result = self.catalog_editor.undo(root, path, page, version, previous["backup"])
+            self.state["catalogs"][str(root)] = {
+                "path": path,
+                "page": page,
+                "backup": "",
+                "version": result["version"],
+            }
+            self.persist()
+            return {**result, "can_undo": False}
+
     def save_page(self, value, relative, version, html):
         with self.lock:
             root = self.root(value)
@@ -370,6 +435,10 @@ class SiteWorkspace:
             return {"root": str(root), "path": entry["relative"]}
 
     def clone(self, url, destination, author_name="", author_email=""):
+        defaults = self.publisher.preferences.author
+        author_name = author_name.strip() or defaults["name"]
+        author_email = author_email.strip() or defaults["email"]
+        self.publisher.preferences.identity(author_name, author_email, require_pair=False)
         repository = github_repository(url.strip())
         target = local_path(destination)
         if target.exists():

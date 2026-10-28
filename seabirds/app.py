@@ -16,6 +16,8 @@ from uuid import uuid4
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -114,6 +116,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return response
 
     app.add_middleware(BodyLimit)
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_payload(request, exc):
+        if request.url.path == "/api/generator/github/settings":
+            return JSONResponse(
+                {"detail": "Configuração inválida. Confira nome, e-mail e a operação do token."},
+                422,
+            )
+        return await request_validation_exception_handler(request, exc)
 
     @app.exception_handler(ConflictError)
     async def conflict_handler(request, exc):

@@ -68,6 +68,12 @@ A [matriz de compatibilidade](docs/COMPATIBILIDADE.md) mostra onde cada recurso 
 
 As miniaturas são associadas ao rascunho e continuam disponíveis ao reabrir o aplicativo. O catálogo fica em `data/image-catalog.json` e a lixeira em `data/image-trash/`; inclua ambos na cópia do diretório de dados. Gere o HTML novamente depois de corrigir as imagens para atualizar a página exportada.
 
+## Catálogo de documentações
+
+Use **Adicionar ao catálogo** no editor para cadastrar o HTML gerado, com categoria, título, imagem, descrição e link. O título, o link e a primeira imagem do documento são sugeridos. Em **Site e repositórios → Catálogo de documentações**, é possível buscar, editar, mudar a categoria, remover cards e desfazer a última alteração.
+
+O formulário altera o `js/projetos-conteudo.js` do próprio site, mantendo `dadosCategorias`, comentários e os demais cadastros. A configuração da página que exibe o catálogo fica salva por site; no seu caso é `paginas/projetos.html`. As URLs são calculadas em relação a essa página. O catálogo e as capas alteradas entram na revisão junto do HTML, sem incluir outros JavaScript. Consulte [Catálogo pelo navegador](docs/CATALOGO.md).
+
 ## Histórico e recuperação
 
 O padrão é salvar o histórico a cada **60 segundos**, mantendo **10 versões**, configurável pela interface. O agendamento é periódico, inclusive durante edição contínua. O histórico não grava HTML automaticamente: gerar o arquivo continua sendo uma ação explícita.
@@ -79,6 +85,8 @@ Um rascunho local no navegador ajuda na recuperação se a conexão cair. Antes 
 Para uma cópia completa, pare a aplicação e copie `data/` e as pastas externas onde guardou os HTML, templates e imagens. As imagens e páginas são arquivos do seu site; não ficam obrigatoriamente dentro do diretório de dados. Para restaurar os rascunhos, aponte `SEABIRDS_DATA_DIR` para uma cópia do diretório de dados e reinicie.
 
 ## Publicar no GitHub e executar o deploy no S3
+
+Em **Site e repositórios → Configurar GitHub**, salve o nome, o e-mail e o token como segredo. A configuração também está acessível no clone e na revisão de publicação. O token é criptografado no servidor e não é devolvido ao navegador; campo vazio mantém o valor salvo. As próximas operações já usam a configuração, sem reiniciar o serviço. Consulte [Gerenciamento web do GitHub](docs/GITHUB-WEB.md) para atualização, remoção do token, prioridades e backup da chave.
 
 O botão **Publicar** usa um clone local do repositório, como `perdixti/SeaBirdsCloud-site`. O workflow `deploy.yml` deste site já responde ao push na `main`, sincroniza o bucket S3 e invalida o CloudFront. As credenciais AWS continuam nos secrets do GitHub Actions.
 
@@ -92,7 +100,7 @@ Revisões expiram em 15 minutos. Mudanças nos arquivos, no remoto ou na main in
 
 O Git precisa estar instalado e autenticado **na máquina/usuário do servidor**. No Windows, a autenticação HTTPS já configurada no Git Credential Manager pode ser reutilizada. No LXC, use SSH ou um token restrito ao repositório em `SEABIRDS_GITHUB_TOKEN`; para HTTPS com esse token, o aplicativo usa um helper de processo, sem colocar a credencial na URL, no histórico do documento ou no navegador. O lançador `data/.github-askpass.sh` contém apenas os caminhos do Python e do helper; o token é lido do ambiente do processo. A consulta ao Actions também tenta usar o helper Git existente. Um token fine-grained precisa de **Contents: write** para publicar e **Actions: read** para consultar a pipeline. Consulte a documentação de [tokens GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) e [execuções de workflows](https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2026-03-10).
 
-Prepare o clone com a autenticação escolhida e configure a identidade nele:
+Como alternativa à configuração pela interface, é possível preparar o clone manualmente:
 
 ```bash
 git clone git@github.com:perdixti/SeaBirdsCloud-site.git /srv/seabirds/site
@@ -121,7 +129,7 @@ Em **Site e repositórios → Configurar editor**, conecte um editor que execute
 
 No Windows, com VS Code instalado e disponível no PATH, use **Iniciar VS Code Web neste computador**. A interface apresenta os [termos do Visual Studio Code Server](https://aka.ms/vscode-server-license); só inicia após sua aceitação. O processo usa `127.0.0.1:8765`, autenticação por token e dados separados em `data/vscode-*`. A primeira execução pode baixar componentes do VS Code. A API de inicialização só aceita acesso pela própria máquina. O gerador exige VS Code 1.128.1 ou mais recente; mantenha-o atualizado. Fechar a aba do navegador mantém o processo em execução; reiniciar o computador o encerra, e o botão pode iniciá-lo novamente. Os testes desta entrega simularam a inicialização, sem aceitar os termos por você.
 
-No Debian/LXC ou na EC2, o editor pode ficar hospedado junto do gerador. Atualize para a versão 2.6.0 e execute `bash deploy/install-web.sh` no servidor. Depois, use **Site e repositórios → Editor do site**. O editor abre no mesmo endereço, em `/editor/`, acessando a pasta selecionada do servidor. Ele inicia automaticamente com o servidor e usa senha própria; o computador do usuário só precisa do navegador.
+No Debian/LXC ou na EC2, o editor pode ficar hospedado junto do gerador. Atualize para a versão 2.8.0 e execute `bash deploy/install-web.sh` no servidor. Depois, use **Site e repositórios → Editor do site**. O editor abre no mesmo endereço, em `/editor/`, acessando a pasta selecionada do servidor. Ele inicia automaticamente com o servidor e usa senha própria; o computador do usuário só precisa do navegador.
 
 O modo de desenvolvimento mantém HTTP e a porta pública 8000. O proxy encaminha o gerador para a porta interna 8001 e o editor para 8765, ambas em loopback. O link é relativo e também funciona no IP do LXC, sem fixar o DNS da EC2. A configuração de publicação Git continua sendo feita no gerador, com revisão antes do commit/push.
 

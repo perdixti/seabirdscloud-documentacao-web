@@ -2400,3 +2400,30 @@ dialog::backdrop {
     margin-bottom: 6px;
   }
 }
+/* Cadastro dos cards do site. */
+.catalog-modal { width: min(1050px, calc(100vw - 32px)); }
+dialog.catalog-modal[open] { display: flex; flex-direction: column; max-height: 94vh; overflow: hidden; }
+.catalog-modal .modal-heading { flex: none; margin-bottom: 12px; padding-bottom: 10px; }
+.catalog-modal #modal-body { min-height: 0; overflow: auto; padding-right: 4px; }
+.catalog-modal #modal-body > p:first-child { margin: 0 0 10px; }
+.catalog-columns { display: grid; grid-template-columns: minmax(210px, .85fr) minmax(0, 1.15fr); gap: 24px; }
+.catalog-columns input, .catalog-columns textarea { width: 100%; min-width: 0; }
+#catalog-form .stack { display: grid; grid-template-columns: minmax(120px, .7fr) minmax(0, 1.3fr); gap: 10px 12px; }
+#catalog-form .stack > label:nth-child(n+3) { grid-column: 1 / -1; }
+#catalog-form h3 { margin: 12px 0; }
+.catalog-modal .modal-actions { margin-top: 12px; }
+.catalog-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.catalog-heading h3 { margin: 12px 0; }
+.catalog-list { max-height: 390px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+.catalog-list summary { padding: 9px 4px; font-weight: 600; cursor: pointer; }
+.catalog-entry { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-top: 1px solid var(--border); }
+.catalog-entry > div { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.catalog-entry small { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
+.catalog-entry strong { font-size: 12px; }
+#catalog-code { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11px; }
+#catalog-config { margin-bottom: 16px; }
+@media (max-width: 820px) {
+  .catalog-columns { grid-template-columns: minmax(0, 1fr); }
+  .catalog-list { max-height: 180px; }
+  #catalog-form .stack { grid-template-columns: minmax(0, 1fr); }
+}

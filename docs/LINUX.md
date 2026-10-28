@@ -1,22 +1,22 @@
-# Linux e LXC — versão 2.6.0
+# Linux e LXC — versão 2.8.0
 
 A aplicação usa a mesma interface, gerador, template e catálogo de imagens no Windows e no Linux. Os caminhos pertencem à máquina do servidor. No LXC, um caminho como `/opt/Meu site` deve existir e estar acessível ao usuário `seabirds`.
 
 ## Atualizar o LXC existente
 
-Copie `SeaBirdsCloud-LXC-Debian13-2.6.0.zip` para `/root` do LXC. Como root, dentro do container:
+Copie `SeaBirdsCloud-LXC-Debian13-2.8.0.zip` para `/root` do LXC. Como root, dentro do container:
 
 ```bash
 apt-get update
 apt-get install -y unzip
-mkdir -p /root/seabirds-update-2.6.0
-unzip SeaBirdsCloud-LXC-Debian13-2.6.0.zip -d /root/seabirds-update-2.6.0
-cd /root/seabirds-update-2.6.0/SeaBirdsCloud
+mkdir -p /root/seabirds-update-2.8.0
+unzip SeaBirdsCloud-LXC-Debian13-2.8.0.zip -d /root/seabirds-update-2.8.0
+cd /root/seabirds-update-2.8.0/SeaBirdsCloud
 sha256sum -c MANIFEST.sha256
-bash deploy/install-debian.sh
+bash deploy/update-app.sh
 ```
 
-O instalador preserva `/var/lib/seabirds` (banco, rascunhos, históricos e lixeiras), `/srv/seabirds` (sites) e a configuração já existente em `/etc/seabirds/seabirds.env`. Faça backup desses caminhos antes da atualização. As credenciais do GitHub continuam no arquivo de configuração existente.
+O instalador preserva `/var/lib/seabirds` (banco, rascunhos, históricos e lixeiras), `/srv/seabirds` (sites) e a configuração já existente em `/etc/seabirds/seabirds.env`. Faça backup desses caminhos antes da atualização. As credenciais antigas continuam funcionando. Na versão 2.8.0, autor e token também podem ser gerenciados em **Configurar GitHub**, sem reiniciar o serviço; veja [GitHub Web](GITHUB-WEB.md).
 
 ## Usar um clone existente em /opt
 
@@ -56,7 +56,17 @@ Ctrl+V envia a imagem ao servidor e grava no diretório físico configurado. A r
 
 O code-server acessa o mesmo clone. Execute `bash deploy/install-web.sh` na pasta extraída para disponibilizar o editor em `/editor/` no endereço do gerador, sem túnel na máquina do usuário. Consulte [Editor Web](EDITOR-WEB.md) para atualização e detalhes dos serviços.
 
-## Validação do editor Web (2.6.0)
+## Validação do catálogo (2.8.0)
+
+A suíte de 154 casos passou em Linux/Python 3.12 e 3.13 (153 aprovados e 1 ignorado) e Windows/Python 3.12 (147 aprovados e 7 ignorados). Foram verificados cadastro/edição/mudança de categoria, conflito de versão, desfazer após reiniciar, URLs e limites de pasta, preservação de comentários e publicação conjunta de HTML/capa/catálogo em remoto bare local. O navegador usou uma cópia do catálogo real de 21 categorias e 179 projetos, sem alterar o arquivo original do site.
+
+Consulte [Catálogo](CATALOGO.md) e [Validação](VALIDACAO.md).
+
+## Validação do gerenciamento GitHub (2.7.0)
+
+Passaram 134 testes no Linux (1 ignorado) e 128 no Windows (7 ignorados). Foram verificados segredo criptografado, permissões privadas, ausência do token em respostas/erros, troca/remoção, persistência, uso imediato no clone e publicação, e configuração do autor na mesma revisão. O formulário foi exercitado no navegador contra Linux com dados sintéticos.
+
+## Validação anterior do editor Web (2.6.0)
 
 A suíte de 123 casos passou no Linux (122 aprovados, 1 ignorado) e no Windows (116 aprovados, 7 ignorados). O code-server e o proxy foram exercitados de fato pelo navegador em HTTP, com edição e gravação em disco. As três unidades também responderam sob as restrições systemd do instalador em uma árvore temporária. Veja [validação detalhada](VALIDACAO.md) e [Editor Web](EDITOR-WEB.md).
 

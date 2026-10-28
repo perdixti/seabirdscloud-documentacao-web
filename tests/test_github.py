@@ -76,6 +76,77 @@ def test_review_is_read_only_and_recommends_current_document(repository):
     assert not git(root, "diff", "--cached", "--name-only")
 
 
+def test_web_author_unblocks_same_review_without_touching_head_or_stage(repository):
+    service, root, remote, document = repository
+    git(root, "config", "--unset", "user.name")
+    git(root, "config", "--unset", "user.email")
+    review = service.inspect(str(root), document)
+    head = git(root, "rev-parse", "HEAD")
+    with pytest.raises(ValueError, match="Configure o nome"):
+        service.publish(review["token"], ["projetos/guia á.html"], "docs")
+    assert git(root, "rev-parse", "HEAD") == head
+    assert not git(root, "diff", "--cached", "--name-only")
+    status = service.configure("Autor da web", "web@example.invalid", directory=str(root))
+    assert status["repository_author"] == {"name": "Autor da web", "email": "web@example.invalid"}
+    assert git(root, "rev-parse", "HEAD") == head
+    result = service.publish(review["token"], ["projetos/guia á.html"], "docs")
+    assert result["publication"]["status"] == "pushed"
+    assert (
+        git(remote, "show", "-s", "--format=%an <%ae>", "main")
+        == "Autor da web <web@example.invalid>"
+    )
+
+
+def test_web_settings_are_shared_by_clone_and_publication_without_restart(
+    repository, monkeypatch, tmp_path
+):
+    _, _, remote, _ = repository
+    data = tmp_path / "web-data"
+    token = "synthetic-private-token-for-shared-service"
+    original = GitHubPublisher.git
+    captured = []
+
+    def local_clone(self, root, *args, **kwargs):
+        if args and args[0] == "clone":
+            captured.append(self.environment()["SEABIRDS_GITHUB_TOKEN"])
+            args = (*args[:2], str(remote), *args[3:])
+        return original(self, root, *args, **kwargs)
+
+    monkeypatch.setattr(GitHubPublisher, "git", local_clone)
+    destination = tmp_path / "clone-web"
+    with TestClient(create_app(Settings(data))) as client:
+        saved = client.post(
+            "/api/generator/github/settings",
+            json={
+                "name": "Autor central",
+                "email": "central@example.invalid",
+                "token_action": "replace",
+                "token": token,
+            },
+        )
+        assert saved.status_code == 200 and token not in saved.text
+        cloned = client.post(
+            "/api/generator/site/clone",
+            json={"url": "https://github.com/teste/site.git", "destination": str(destination)},
+        )
+        assert cloned.status_code == 200 and captured == [token]
+        assert git(destination, "config", "--get", "user.name") == "Autor central"
+        assert git(destination, "config", "--get", "user.email") == "central@example.invalid"
+        (destination / "index.html").write_text("edicao pela web\n", encoding="utf-8")
+        review = client.post(
+            "/api/generator/github/review-site", json={"directory": str(destination)}
+        ).json()
+        published = client.post(
+            "/api/generator/github/publish",
+            json={"token": review["token"], "selected": ["index.html"], "message": "docs: web"},
+        )
+        assert (
+            published.status_code == 200 and published.json()["publication"]["status"] == "pushed"
+        )
+        assert token not in published.text
+        assert git(remote, "show", "main:index.html") == "edicao pela web"
+
+
 def test_publish_commits_only_selected_paths_preserving_unrelated_stage(repository):
     service, root, remote, document = repository
     (root / "README.md").write_text("alteração preparada pelo usuário\n", encoding="utf-8")
@@ -93,6 +164,56 @@ def test_publish_commits_only_selected_paths_preserving_unrelated_stage(reposito
     )
     again = service.publish(review["token"], ["projetos/guia á.html"], "docs: guia")
     assert again["publication"]["sha"] == item["sha"]
+
+
+def test_catalog_html_and_cover_are_reviewed_and_pushed_together(repository):
+    from seabirds.filesystem import ProjectFiles
+    from seabirds.site_workspace import SiteWorkspace
+
+    service, root, remote, document = repository
+    (root / "js").mkdir()
+    (root / "paginas").mkdir()
+    (root / "imagens").mkdir()
+    (root / "paginas/projetos.html").write_text("<title>Catálogo</title>", encoding="utf-8")
+    catalog = root / "js/projetos-conteudo.js"
+    catalog.write_text("const dadosCategorias = [];\n", encoding="utf-8")
+    git(root, "add", "js/projetos-conteudo.js", "paginas/projetos.html")
+    git(root, "commit", "-m", "catalogo inicial")
+    git(root, "push", "origin", "main")
+    (root / "imagens/capa.png").write_bytes(b"capa-qa")
+    (root / "js/outro.js").write_text("window.naoPublicar = true;", encoding="utf-8")
+    (root / "README.md").write_text("preservar no stage", encoding="utf-8")
+    git(root, "add", "README.md")
+    workspace = SiteWorkspace(service.directory, ProjectFiles(service.directory), publisher=service)
+    current = workspace.read_catalog(str(root))
+    workspace.save_catalog(
+        str(root),
+        current["path"],
+        current["page"],
+        current["version"],
+        {
+            "categoria": "Linux",
+            "titulo": "Guia publicado",
+            "imagem": str(root / "imagens/capa.png"),
+            "descricao": "Descrição da documentação",
+            "link": document.generation.output_path,
+        },
+    )
+    review = service.inspect(str(root), document)
+    selected = [file["path"] for file in review["files"] if file["selected"]]
+    assert set(selected) == {"projetos/guia á.html", "imagens/capa.png", "js/projetos-conteudo.js"}
+    assert "Guia publicado" in next(
+        file["diff"] for file in review["files"] if file["path"].endswith(".js")
+    )
+    assert not service.allowed("js/outro.js") and not service.allowed(
+        ".github/projetos-conteudo.js"
+    )
+    published = service.publish(review["token"], selected, "docs: html, capa e catalogo")
+    assert published["publication"]["status"] == "pushed"
+    assert "Guia publicado" in git(remote, "show", "main:js/projetos-conteudo.js")
+    assert git(remote, "show", "main:projetos/guia á.html") == "<h1>Guia revisado</h1>"
+    assert git(root, "diff", "--cached", "--name-only") == "README.md"
+    assert git(remote, "show", "main:README.md") == "original"
 
 
 def test_changed_file_or_arbitrary_selection_requires_new_review(repository):

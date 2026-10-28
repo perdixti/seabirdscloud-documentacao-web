@@ -1,3 +1,4 @@
+import { openGitHubSettings } from "./github-settings.js";
 const $ = (selector) => document.querySelector(selector);
 const labels = { added: "Novo", modified: "Alterado", deleted: "Removido" };
 const statuses = {
@@ -37,6 +38,9 @@ export class GitHubPublication {
       button.textContent = text;
     }
   }
+  configure(directory = this.repository(), afterSave, onBack) {
+    return openGitHubSettings({api: this.api, modal: this.modal, directory, afterSave, onBack});
+  }
   open(directory = this.repository()) {
     this.mode = "document";
     this.modal(
@@ -44,6 +48,14 @@ export class GitHubPublication {
       '<p>Gere o HTML, revise os arquivos e envie um commit para a <b>main</b>. O GitHub Actions executará a pipeline de publicação no S3.</p><label>Raiz do site (pasta do index.html)<div class="path-input"><input id="github-directory" placeholder="Detectada a partir do HTML gerado"><button id="github-choose" aria-label="Selecionar pasta do site">Selecionar</button></div></label><p class="field-hint">A busca inclui os HTML e imagens em todas as subpastas do site. A pasta precisa conter o HTML de saída e pertencer ao clone do site.</p><div class="modal-actions"><button id="github-review" class="primary">Gerar HTML e revisar</button></div>',
     );
     $("#github-directory").value = directory;
+    const settings = document.createElement("button");
+    settings.textContent = "Configurar GitHub";
+    settings.id = "github-open-settings";
+    $("#github-review").after(settings);
+    settings.onclick = () => this.busy(settings, async () => {
+      const root = $("#github-directory").value.trim();
+      return this.configure(root, () => this.open(root), () => this.open(root));
+    });
     $("#github-choose").onclick = () =>
       this.busy($("#github-choose"), async () => {
         const input = $("#github-directory");
@@ -84,10 +96,10 @@ export class GitHubPublication {
     await this.generate();
     return this.review();
   }
-  renderReview(review) {
+  renderReview(review, commitMessage) {
     this.modal(
       "Revisar publicação na main",
-      '<div class="github-repository"><div><span class="eyebrow">REPOSITÓRIO</span><strong id="github-repository-name"></strong><small id="github-author"></small></div><span class="github-branch">main</span></div><p class="field-hint">Raiz do site (index.html)</p><p id="github-root" class="image-path"></p><p id="github-scope" class="field-hint"></p><div id="github-notice" class="github-notice" hidden></div><div id="github-last"></div><p>Selecione os HTML e imagens que entrarão neste commit. As remoções selecionadas também serão enviadas.</p><div id="github-files" class="github-files"></div><div class="github-selection" id="github-selection"></div><label>Mensagem do commit<input id="github-message" maxlength="500"></label><p class="field-hint">O envio à main inicia a pipeline do repositório.</p><div class="modal-actions"><button id="github-publish" class="primary">Fazer commit e publicar na main</button><button id="github-rescan">Revisar novamente</button></div>',
+      '<div class="github-repository"><div><span class="eyebrow">REPOSITÓRIO</span><strong id="github-repository-name"></strong><small id="github-author"></small></div><span class="github-branch">main</span></div><p class="field-hint">Raiz do site (index.html)</p><p id="github-root" class="image-path"></p><p id="github-scope" class="field-hint"></p><div id="github-notice" class="github-notice" hidden></div><div id="github-last"></div><p>Selecione os HTML, imagens e o catálogo que entrarão neste commit. As remoções selecionadas também serão enviadas.</p><div id="github-files" class="github-files"></div><div class="github-selection" id="github-selection"></div><label>Mensagem do commit<input id="github-message" maxlength="500"></label><p class="field-hint">O envio à main inicia a pipeline do repositório.</p><div class="modal-actions"><button id="github-publish" class="primary">Fazer commit e publicar na main</button><button id="github-rescan">Revisar novamente</button></div>',
     );
     $("#github-repository-name").textContent = review.repository;
     $("#github-root").textContent = review.site_root || review.root;
@@ -97,14 +109,14 @@ export class GitHubPublication {
         : "") +
       (review.site_only
         ? "Revise as alterações locais do site, incluindo as páginas removidas."
-        : "Busca recursiva em todas as subpastas. O HTML gerado e suas imagens já estão selecionados.");
+        : "Busca recursiva em todas as subpastas. O HTML gerado, suas imagens e o catálogo alterado já estão selecionados.");
     $("#github-author").textContent =
       review.author.name && review.author.email
         ? `Autor: ${review.author.name} <${review.author.email}>`
-        : "Configure user.name e user.email no Git deste repositório antes de publicar.";
-    $("#github-message").value = review.site_only
+        : "Informe nome e e-mail em Configurar autor e GitHub para habilitar a publicação.";
+    $("#github-message").value = commitMessage ?? (review.site_only
       ? "docs: atualiza páginas do site"
-      : "docs: atualiza " + this.data().title;
+      : "docs: atualiza " + this.data().title);
     const aligned = !review.ahead && !review.behind;
     if (!aligned) {
       const notice = $("#github-notice");
@@ -184,8 +196,21 @@ export class GitHubPublication {
     }
     if (!review.files.length)
       $("#github-files").textContent =
-        "Nenhum HTML ou imagem com alterações para publicar.";
+        "Nenhum HTML, imagem ou catálogo com alterações para publicar.";
     updateSelection();
+    const configure = document.createElement("button");
+    configure.id = "github-configure";
+    configure.textContent = review.author.name && review.author.email ? "Configurar GitHub" : "Configurar autor e GitHub";
+    configure.className = "quiet-button";
+    $("#github-author").after(configure);
+    configure.onclick = () => this.busy(configure, async () => {
+      const selected = new Set(checks.filter(input => input.checked).map(input => input.value));
+      const snapshot = {...review, files: review.files.map(file => ({...file, selected: selected.has(file.path)}))};
+      const message = $("#github-message").value;
+      return this.configure(review.root,
+        settings => this.renderReview({...snapshot, author: settings.repository_author || snapshot.author}, message),
+        () => this.renderReview(snapshot, message));
+    });
     $("#github-rescan").onclick = () =>
       this.busy($("#github-rescan"), async () => {
         await this.refreshReview();

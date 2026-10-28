@@ -11,6 +11,7 @@ from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field
 
 from .filesystem import WEB_EXTENSIONS, ProjectFiles, local_path, read_utf8, rewrite_css_root_paths
+from .github import GitHubPublisher
 from .github_api import github_router
 from .models import DocumentInput, GenerationSettings
 from .paths import directory_entries, folder_access
@@ -361,6 +362,7 @@ def generator_router(settings):
         path.mkdir(parents=False, exist_ok=False)
         return {"path": str(path)}
 
-    router.include_router(github_router(settings, filesystem_access))
-    router.include_router(site_router(settings, files, filesystem_access))
+    publisher = GitHubPublisher(settings.data_dir)
+    router.include_router(github_router(settings, filesystem_access, publisher))
+    router.include_router(site_router(settings, files, filesystem_access, publisher))
     return router

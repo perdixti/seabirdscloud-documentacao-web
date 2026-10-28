@@ -250,7 +250,7 @@
                 ><svg aria-hidden="true" class="icon">
                   <use href="#icon-external"></use></svg
                 ><span>Visualizar</span></a
-              ><button
+              ><button id="document-catalog">Adicionar ao catálogo</button><button
                 id="publish-github"
                 title="Publicar no GitHub"
                 aria-label="Publicar no GitHub"
@@ -601,6 +601,8 @@ O conteúdo será inserido no seu template HTML."
             role="status"
           ></div>
           <div class="site-main-actions">
+            <button id="site-github-settings">Configurar GitHub</button>
+            <button id="site-catalog">Catálogo de documentações</button>
             <button id="site-new-document">Nova documentação neste site</button
             ><button id="site-publish" class="primary">
               Publicar alterações do site</button
@@ -769,7 +771,15 @@ O conteúdo será inserido no seu template HTML."
             No Windows, a inicialização do VS Code pede sua aceitação dos termos
             do servidor. Salve, atualize a listagem e revise o commit.
           </p>
+          <h2>Catálogo de documentações</h2>
+          <p>Depois de gerar o HTML, use <b>Adicionar ao catálogo</b> para cadastrar categoria,
+            título, imagem, descrição e link. Em <b>Site e repositórios → Catálogo de documentações</b>,
+            busque e edite os cadastros existentes. Salve localmente e revise a publicação
+            para enviar o catálogo junto do HTML e das imagens.</p>
           <h2>Publicar no GitHub</h2>
+          <p>Em <b>Site e repositórios → Configurar GitHub</b>, salve o nome,
+            o e-mail e o token como segredo. O campo vazio mantém o token salvo;
+            as próximas operações já usam a configuração.</p>
           <p>
             O botão <b>Publicar</b> gera o HTML e abre uma revisão dos arquivos
             do repositório. Confira o destino, selecione os HTML e imagens, veja
