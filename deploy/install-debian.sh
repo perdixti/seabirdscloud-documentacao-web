@@ -30,7 +30,8 @@ python3 -m venv /opt/seabirds/venv
 if [[ ! -f /etc/seabirds/seabirds.env ]]; then
     password="$(/opt/seabirds/venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(24))')"
     umask 077
-    printf 'SEABIRDS_DATA_DIR=/var/lib/seabirds\nSEABIRDS_HOST=0.0.0.0\nSEABIRDS_PORT=8000\nSEABIRDS_USERNAME=admin\nSEABIRDS_PASSWORD=%s\nSEABIRDS_HISTORY_LIMIT=50\n' "$password" > /etc/seabirds/seabirds.env
+    read -sp "Digite o seu token: " token
+    printf 'SEABIRDS_DATA_DIR=/var/lib/seabirds\nSEABIRDS_HOST=0.0.0.0\nSEABIRDS_PORT=8000\nSEABIRDS_USERNAME=admin\nSEABIRDS_PASSWORD=%s\nSEABIRDS_HISTORY_LIMIT=50\nSEABIRDS_GITHUB_TOKEN=' "$password" "$token" > /etc/seabirds/seabirds.env
 fi
 install -m 644 "$source_dir/deploy/seabirds.service" /etc/systemd/system/seabirds.service
 systemctl daemon-reload
