@@ -462,3 +462,104 @@ def test_remote_request_cannot_bypass_auth_with_localhost_host_header(tmp_path):
         assert client.get("/api/operations").status_code == 403
         assert client.get("/api/maintenance/backups").status_code == 403
         assert client.get("/healthz").status_code == 200
+
+
+def test_generation_infers_site_and_accepts_cover_from_markdown_path(environment):
+    client, hub, root, _ = environment
+    doc = prepared(client, root)
+    doc["generation"].update(
+        site_dir="",
+        github_repository_path="",
+        save_source=False,
+        catalog_image="../../imagens/capa.png",
+    )
+    catalog = root / "js/projetos-conteudo.js"
+    before = catalog.read_bytes()
+    context = client.post("/api/site/documents/context", json=doc)
+    assert context.status_code == 200, context.text
+    assert context.json()["generation"]["site_dir"] == str(root)
+    assert context.json()["generation"]["catalog_image"] == "/imagens/capa.png"
+    assert catalog.read_bytes() == before
+    assert not Path(doc["generation"]["output_path"]).exists()
+    generated = job(client, "document.generate", doc)["result"]
+    assert Path(generated["path"]).is_file()
+    assert generated["context"]["site_dir"] == str(root)
+    assert generated["context"]["catalog_image"] == "/imagens/capa.png"
+    entries = CatalogSource(catalog.read_text(encoding="utf-8")).entries
+    assert len(entries) == 1
+    assert next(iter(entries.values()))["imagem"] == "../imagens/capa.png"
+
+
+def test_first_markdown_image_becomes_cover_without_attachment_records(environment):
+    client, hub, root, _ = environment
+    doc = prepared(client, root)
+    doc["generation"].update(catalog_image="", images=[], site_dir="", github_repository_path="")
+    doc["markdown"] = "# Guia\n\n![Capa](../../imagens/capa.png)"
+    generated = job(client, "document.generate", doc)["result"]
+    source = json.loads(Path(generated["source"]).read_text(encoding="utf-8"))
+    assert source["document"]["generation"]["catalog_image"] == "../imagens/capa.png"
+    (root / "projetos/imagens").mkdir()
+    (root / "projetos/imagens/capa.png").write_bytes(b"capa usada pelo Markdown")
+    doc["markdown"] = "# Guia\n\n![Capa](../imagens/capa.png)"
+    generated = job(client, "document.generate", doc)["result"]
+    assert generated["context"]["catalog_image"] == "/projetos/imagens/capa.png"
+
+
+def test_cover_ambiguity_missing_and_wrong_site_do_not_change_files(environment):
+    client, hub, root, _ = environment
+    doc = prepared(client, root)
+    (root / "projetos/imagens").mkdir()
+    (root / "projetos/imagens/capa.png").write_bytes(b"outra imagem")
+    doc["generation"]["catalog_image"] = "../imagens/capa.png"
+    catalog = root / "js/projetos-conteudo.js"
+    before = catalog.read_bytes()
+    failed = job(client, "document.generate", doc, fail=True)
+    assert "duas imagens" in failed["error"]
+    doc["generation"]["catalog_image"] = "../../imagens/inexistente.png"
+    response = client.post("/api/site/documents/context", json=doc)
+    assert response.status_code == 422 and "Capa" in response.text
+    other = root.parent / "other-site"
+    other.mkdir()
+    (other / "index.html").write_text("outro site")
+    doc["generation"]["site_dir"] = str(other)
+    failed = job(client, "document.generate", doc, fail=True)
+    assert "dentro da raiz" in failed["error"]
+    assert catalog.read_bytes() == before
+    assert not Path(doc["generation"]["output_path"]).exists()
+
+
+def test_image_picker_lists_images_without_other_files(environment):
+    client, _, root, _ = environment
+    (root / "imagens/leia.txt").write_text("texto")
+    response = client.post(
+        "/api/generator/browse", json={"path": str(root / "imagens"), "kind": "image"}
+    )
+    assert response.status_code == 200
+    names = {entry["name"] for entry in response.json()["entries"]}
+    assert "capa.png" in names and "leia.txt" not in names
+
+
+def test_generation_failure_restores_original_non_utf8_html(environment, monkeypatch):
+    from seabirds import document_flow
+
+    client, hub, root, _ = environment
+    doc = prepared(client, root)
+    output = Path(doc["generation"]["output_path"])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    original = "<title>Versão antiga</title>\r\n".encode("cp1252")
+    output.write_bytes(original)
+    catalog = root / "js/projetos-conteudo.js"
+    before = catalog.read_bytes()
+    write = document_flow.atomic_write
+
+    def fail_catalog(path, content):
+        if path == catalog and content != before:
+            raise OSError("Falha simulada no catálogo")
+        return write(path, content)
+
+    monkeypatch.setattr(document_flow, "atomic_write", fail_catalog)
+    failed = job(client, "document.generate", doc, fail=True)
+    assert "Falha simulada" in failed["error"]
+    assert output.read_bytes() == original
+    assert catalog.read_bytes() == before
+    assert not output.with_suffix(".documentacao.json").exists()

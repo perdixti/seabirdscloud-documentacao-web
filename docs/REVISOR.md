@@ -11,13 +11,13 @@ O padrão é **Local** e **Sugerir**. Não há modelo de linguagem carregado, GP
 - **Desativada:** interrompe a revisão durante a digitação; a revisão manual continua disponível.
 - **Desfazer revisão** ou **Ctrl+Z:** recupera o texto anterior em uma ação do histórico. O automático não reaplica imediatamente a mesma revisão desfeita.
 
-Aplicar correções não gera o HTML nem publica alterações. Se o texto mudar enquanto a revisão estiver em andamento, o resultado antigo não sobrescreve sua edição.
+As sugestões que precisam de aprovação continuam visíveis depois de uma correção automática. A barra mostra o estado da revisão; a revisão automática não abre o cartão de progresso. Documentos abertos são conferidos conforme o modo salvo. Aplicar correções não gera o HTML nem publica alterações. Se o texto mudar enquanto a revisão estiver em andamento, o resultado antigo não sobrescreve sua edição.
 
 Em **Configurar revisor**, cadastre palavras ignoradas, como nomes de produtos ou termos próprios. Blocos de código, comandos reconhecidos, URLs, caminhos, marcação HTML e referências de imagens são protegidos da revisão.
 
 ## O que o modo local consegue corrigir
 
-Inclui acentos e erros de escrita comuns, sugestões de dicionário, espaços depois de vírgulas, algumas palavras repetidas, pontuação final e padrões simples de concordância. Exemplo: `Voce nao configurou a aplicacao,confira a conexao.` vira `Você não configurou a aplicação, confira a conexão.`
+Inclui acentos e erros de escrita comuns, sugestões de dicionário, maiúscula no início de frases, espaços depois da pontuação, algumas palavras repetidas, pontuação final e padrões simples de concordância. Em contextos reconhecidos, distingue `Meu testo fala...` de `Eu testo o servidor.`. Exemplo: `Voce nao configurou a aplicacao,confira a conexao.` vira `Você não configurou a aplicação, confira a conexão.`
 
 As regras não compreendem todo o contexto da frase. Uma palavra válida com sentido incorreto, uma vírgula dependente de interpretação ou uma concordância complexa podem passar sem sugestão. A classificação “casos seguros” reduz a intervenção, mas não garante correção linguística em todos os contextos.
 
@@ -25,7 +25,7 @@ O dicionário usa [pyspellchecker](https://pyspellchecker.readthedocs.io/en/late
 
 ## Consumo medido
 
-No teste Linux desta entrega, gerador e revisor atingiram **274,3 MB de pico de memória residente**, com uma CPU disponível e limite de memória virtual de 450 MB. O cenário revisou 49 mil caracteres, criou um backup de um site com 32 MB de dados e restaurou a cópia, em 6,8 segundos no total.
+No teste Linux da versão 3.0.2, gerador e revisor atingiram **274,2 MB de pico de memória residente**, com uma CPU disponível e limite de memória virtual de 450 MB. O cenário revisou 49 mil caracteres, criou um backup de um site com 32 MB de dados e restaurou a cópia, em 2,9 segundos no total.
 
 O resultado indica compatibilidade com a proposta de um ambiente de 500 MB e uma CPU para o gerador e o revisor, sujeito à carga e aos demais processos do sistema. O VS Code Web/code-server é um serviço separado e não entrou nessa medição. Backups precisam de espaço em disco para arquivo temporário, cópia criptografada e recuperação.
 

@@ -106,10 +106,13 @@ const management = new ManagementUI({
   getTemplate: () => $("#template-path").value.trim(),
   pickFolder: (target) => pick("folder", target),
   pickTemplate: (target) => pick("template", target),
+  pickImage: (target) => pick("image", target),
   openDocument,
   getDocument: data,
   setMetadata: (metadata) => {
     Object.assign(state.generation, metadata);
+    for (const [key, value] of Object.entries(metadata))
+      if (generationFields[key]) $("#" + generationFields[key]).value = value;
     markDirty();
   },
   saveDraft: saveAll,
@@ -233,6 +236,11 @@ function markDirty() {
   remember();
   updateViewLink();
   $("#save-status").textContent = "Alterações pendentes no rascunho";
+  if ($("#generation-result").classList.contains("success")) {
+    $("#generation-result").classList.remove("success");
+    $("#generation-result").textContent =
+      "Rascunho alterado. Gere o HTML para atualizar o arquivo.";
+  }
   scheduleAuto();
   schedulePreview();
   updateCounts();
@@ -331,6 +339,7 @@ function fill(doc) {
   renderOptions();
   templateStatus();
   reviewer.reset();
+  reviewer.changed();
   scheduleAuto(true);
   schedulePreview();
   updateCounts();
@@ -449,7 +458,7 @@ async function pick(kind, target) {
   return !!result.path;
 }
 function pickServer(kind, target) {
-  const fileMode = ["template", "output", "markdown"].includes(kind);
+  const fileMode = ["template", "output", "markdown", "image"].includes(kind);
   modal(
     fileMode
       ? "Selecionar arquivo na máquina do aplicativo"
@@ -600,10 +609,20 @@ async function generate() {
   }
   await saveAll();
   const requested = data();
-  const result = await api("/api/generator/generate", {
-    method: "POST",
-    body: JSON.stringify(requested),
-  });
+  $("#generation-result").classList.remove("success");
+  $("#generation-result").textContent = "Gerando HTML…";
+  let result;
+  try {
+    result = await api("/api/generator/generate", {
+      method: "POST",
+      body: JSON.stringify(requested),
+    });
+  } catch (error) {
+    $("#generation-result").textContent =
+      "Não foi possível confirmar a geração. Consulte Operações: " +
+      error.message;
+    throw error;
+  }
   if (data().generation.output_path !== requested.generation.output_path) {
     toast(
       "HTML gerado em " +
@@ -612,8 +631,17 @@ async function generate() {
     );
     return;
   }
-  if (result.output_version) {
-    state.generation.output_version = result.output_version;
+  const context = Object.fromEntries(
+    Object.entries(result.context || {}).filter(
+      ([key]) => data().generation[key] === requested.generation[key],
+    ),
+  );
+  if (result.output_version || Object.keys(context).length) {
+    Object.assign(state.generation, context);
+    for (const [key, value] of Object.entries(context))
+      if (generationFields[key]) $("#" + generationFields[key]).value = value;
+    if (result.output_version)
+      state.generation.output_version = result.output_version;
     markDirty();
     await saveAll();
   }
@@ -707,12 +735,19 @@ on("#generate", generate);
 on("#document-catalog", async () => {
   await imageQueue;
   const document = data();
-  const root =
-    document.generation.site_dir || document.generation.github_repository_path;
-  if (!root)
-    throw Error(
-      "Selecione a raiz do site em Configurar arquivos antes de cadastrar a documentação.",
-    );
+  const resolved = await api("/api/site/documents/context", {
+    method: "POST",
+    body: JSON.stringify({
+      ...document,
+      generation: { ...document.generation, catalog_image: "" },
+    }),
+  });
+  const root = resolved.generation.site_dir;
+  for (const key of ["site_dir", "github_repository_path"]) {
+    state.generation[key] = resolved.generation[key];
+    $("#" + generationFields[key]).value = resolved.generation[key];
+  }
+  markDirty();
   await openProjectCatalog({
     api,
     modal,
@@ -721,7 +756,10 @@ on("#document-catalog", async () => {
     draft: {
       title: document.title,
       output_path: document.generation.output_path,
-      image_path: document.generation.images?.[0]?.path || "",
+      image_path:
+        document.generation.catalog_image ||
+        document.generation.images?.[0]?.path ||
+        "",
     },
   });
 });

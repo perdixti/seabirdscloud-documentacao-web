@@ -166,7 +166,13 @@ class Management:
             if not self.gate.enter():
                 raise ValueError("Backup ou restauração em andamento. Aguarde.")
             try:
-                progress("Preparando " + name, 2)
+                progress(
+                    {
+                        "document.generate": "Preparando a documentação",
+                        "text.review": "Revisando o texto",
+                    }.get(name, "Preparando a operação"),
+                    2,
+                )
                 return handler(model)
             finally:
                 self.gate.leave()
@@ -435,6 +441,12 @@ def management_router(management):
         if any(len(word) > 100 or "\n" in word for word in payload.ignored_words):
             raise ValueError("Cada termo do dicionário deve ter até 100 caracteres.")
         return management.review.configure(data)
+
+    @router.post("/site/documents/context")
+    def document_context(payload: DocumentInput):
+        with management.workspace.lock:
+            document = management.flow.context(payload)
+            return {"generation": document.generation.model_dump()}
 
     @router.post("/site/documents/prepare")
     def prepare_document(payload: PrepareDocumentInput):

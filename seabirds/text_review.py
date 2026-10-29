@@ -37,6 +37,18 @@ SPELLING = dict(
         strict=True,
     )
 )
+SPELLING.update(
+    {
+        "mecher": "mexer",
+        "concerteza": "com certeza",
+        "conciente": "consciente",
+        "excessão": "exceção",
+        "excessao": "exceção",
+        "previlegio": "privilégio",
+        "geito": "jeito",
+        "derrepente": "de repente",
+    }
+)
 PROTECTED = re.compile(
     r"(?ms)^\s*(\x60{3,}|~{3,}).*?^\s*\1[^\n]*(?:\n|$)|^\s*(?:\x60{3,}|~{3,})[^\n]*\n.*\Z|^(?: {4}|\t)[^\n]*|\x60+[^\x60\n]*\x60+|<(?P<tag>script|style|pre|code)\b[^>]*>.*?</(?P=tag)>|<[^>]*>|!\[[^\]]*\]\([^)]*\)|\]\([^)]*\)|\{\{.*?\}\}|https?://[^\s<>]+|[\w.+-]+@[\w.-]+|(?<!\w)[\w./\\:-]*[/\\_.][\w./\\:-]+|^(?:\s*[$#>]\s*)?(?:sudo|git|apt|apt-get|kubectl|docker|systemctl|curl|pip|python|npm|ssh)\s+[^\n]*",
     re.I,
@@ -148,22 +160,78 @@ class TextReview:
             "as imagem": "as imagens",
             "os arquivo": "os arquivos",
             "as página": "as páginas",
+            "nós está": "nós estamos",
+            "nós tem": "nós temos",
+            "nós faz": "nós fazemos",
+            "eles foi": "eles foram",
+            "elas foi": "elas foram",
+            "vocês vai": "vocês vão",
+            "você estão": "você está",
+            "os servidor está": "os servidores estão",
+            "os arquivo está": "os arquivos estão",
+            "as imagem está": "as imagens estão",
+            "as página está": "as páginas estão",
+            "as pagina está": "as páginas estão",
+            "os servidores esta": "os servidores estão",
+            "as imagens esta": "as imagens estão",
         }
         for offset, part in spans(text):
+            line_start = text.rfind("\n", 0, offset) + 1
+            prefix = text[line_start:offset]
+            structured = bool(re.match(r"\s*(?:#|[-*+]\s|\d+[.)]\s)", text[line_start:]))
+            plain_line = not structured and not prefix.strip()
+            first_word = True
+            for match in re.finditer(
+                r"\b(?:meu|seu|este|esse|nosso|o|um)\s+(testo)(?=\s+(?:fala|descreve|explica|aborda|apresenta|contém|trata)\b)",
+                part,
+                re.I,
+            ):
+                if "testo" not in ignored:
+                    result.append(
+                        (
+                            offset + match.start(1),
+                            offset + match.end(1),
+                            casing(match[1], "texto"),
+                            "Ortografia pelo contexto da frase",
+                            True,
+                        )
+                    )
             for match in re.finditer(r"\b[^\W\d_]+\b", part):
                 word = match.group()
                 corrected = SPELLING.get(word.casefold())
+                beginning = plain_line and (
+                    (first_word and not part[: match.start()].strip())
+                    or bool(
+                        re.search(
+                            r"[.!?][\s\"'“”]*$", part[max(0, match.start() - 32) : match.start()]
+                        )
+                    )
+                )
+                first_word = False
                 if corrected and word.casefold() not in ignored:
+                    replacement = casing(word, corrected)
+                    if beginning:
+                        replacement = replacement[:1].upper() + replacement[1:]
                     result.append(
                         (
                             offset + match.start(),
                             offset + match.end(),
-                            casing(word, corrected),
+                            replacement,
                             "Ortografia ou acentuação",
                             True,
                         )
                     )
-                elif (
+                elif beginning and word.islower() and word not in ignored and word not in TECHNICAL:
+                    result.append(
+                        (
+                            offset + match.start(),
+                            offset + match.end(),
+                            word[:1].upper() + word[1:],
+                            "Maiúscula no início da frase",
+                            True,
+                        )
+                    )
+                if (
                     not corrected
                     and word.islower()
                     and 4 <= len(word) <= 24
@@ -179,14 +247,18 @@ class TextReview:
                                 (
                                     offset + match.start(),
                                     offset + match.end(),
-                                    suggestion,
+                                    suggestion[:1].upper() + suggestion[1:]
+                                    if beginning
+                                    else suggestion,
                                     "Sugestão de dicionário; confira o contexto",
                                     False,
                                 )
                             )
             for before, after in agreement.items():
                 for match in re.finditer(r"\b" + re.escape(before) + r"\b", part, re.I):
-                    if before.endswith((" está", " foi", " vai")) and re.search(
+                    if before.endswith(
+                        (" está", " esta", " foi", " vai", " faz", " tem")
+                    ) and re.search(
                         r"\b(?:para|por|de|entre|sem|com|a)\s+(?:todos\s+)?$",
                         part[: match.start()],
                         re.I,
@@ -201,13 +273,13 @@ class TextReview:
                             True,
                         )
                     )
-            for match in re.finditer(r"(?<=[a-záéíóúãõâêôç]),(?=[a-záéíóúãõâêôç])", part, re.I):
+            for match in re.finditer(r"(?<=[a-záéíóúãõâêôç])[,;:](?=[a-záéíóúãõâêôç])", part, re.I):
                 result.append(
                     (
                         offset + match.start(),
                         offset + match.end(),
-                        ", ",
-                        "Espaço depois da vírgula",
+                        match.group() + " ",
+                        "Espaço depois da pontuação",
                         True,
                     )
                 )
@@ -226,8 +298,23 @@ class TextReview:
                 line = text[text.rfind("\n", 0, offset) + 1 : offset + len(part)]
                 tail = text[offset + len(part) :].split("\n", 1)[0]
                 if not tail.strip() and not re.match(r"\s*(?:#|[-*+]\s|\d+[.)]\s)", line):
+                    simple = bool(
+                        re.match(
+                            r"\s*(?:(?:meu|seu|este|esse|nosso|o|um)\s+(?:texto|testo)\s+(?:fala|descreve|explica|aborda|apresenta|contém|trata)\b|meu\s+nome\s+é\b|(?:a aplicação|o servidor|os servidores|as imagens)\s+(?:está|estão|foi|foram)\b)",
+                            part,
+                            re.I,
+                        )
+                    )
                     result.append(
-                        (end, end, ".", "Verifique se a frase precisa de ponto final", False)
+                        (
+                            end,
+                            end,
+                            ".",
+                            "Ponto final em frase declarativa"
+                            if simple
+                            else "Verifique se a frase precisa de ponto final",
+                            simple,
+                        )
                     )
         return result
 

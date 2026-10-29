@@ -1,5 +1,18 @@
 # Validação — fluxo de geração HTML
 
+## Ajustes 3.0.2 — 29/10/2026
+
+- Suíte de 203 casos: **195 aprovados e 8 ignorados** no Windows/Python 3.12; **202 aprovados e 1 ignorado** em Linux/Python 3.12 e em Linux/Python 3.13. Os casos ignorados dependem da plataforma/configuração. O aviso do adaptador httpx do TestClient continua sem falha.
+- Reproduzidos os textos das capturas: `Meu testo fala sobre cachorro` → `Meu texto fala sobre cachorro.`, início de frase `lápis.` → `Lápis.` e nome próprio preservado. O verbo correto em `Eu testo o servidor.` continua igual. Casos de concordância sobrepostos corrigidos numa passagem.
+- Geração com raiz vazia inferida pelo destino do HTML, capa relativa ao Markdown e primeira imagem sem registro de miniatura. Capa ausente/ambígua e raiz incompatível recusadas sem alterar HTML ou catálogo. Seletor de capa filtra imagens.
+- Falha simulada na gravação do catálogo recuperou exatamente o HTML anterior em CP1252, sem fonte parcial.
+- DOM: contagem e posições das sugestões restantes após correção automática, aprovação posterior e desfazer; capa inválida preservando o formulário, seletor preservando categoria/descrição e campos normalizados. As 23 verificações do editor e regressões de seletor Linux, site, exclusão e GitHub Web passaram.
+- Navegador com site sintético: correção automática, desfazer, aprovação manual das três correções das capturas, geração HTML, validação da capa e abertura/salvamento do catálogo sem repetir a raiz; um único card atualizado. Nenhuma publicação real executada.
+- Medição Linux final: **274,2 MB de pico residente**, uma CPU disponível, limite de memória virtual de 450 MB, revisão de 49 mil caracteres e criação/restauração de backup com 32 MB de dados; 2,9 segundos no total nesse ambiente. VS Code Web continua fora da medição.
+
+A validação foi feita em dados temporários. Documentos reais, catálogo do site do usuário, credenciais e arquivos do LXC não foram alterados pelos testes.
+
+
 ## Correção visual 3.0.1 — 29/10/2026
 
 - A barra de revisão foi movida para dentro do painel do editor, preservando as quatro linhas do layout principal. Corrigido o alinhamento do seletor, que herdava a direção vertical dos formulários.

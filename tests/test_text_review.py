@@ -212,3 +212,40 @@ def test_object_pronouns_are_not_mistaken_for_verb_subjects(tmp_path):
     text = "Para nós foi tranquilo. O formato para as imagens está correto."
     result = reviewer.review(text)
     assert apply(text, result["suggestions"], automatic=True) == text
+
+
+def test_screenshot_text_is_corrected_in_safe_mode_and_names_are_preserved(tmp_path):
+    reviewer = TextReview(tmp_path)
+    text = (
+        "# Teste de documentação\n\nMeu nome é Lucas Perdigão de Oliveira.\n\n"
+        "lápis.\n\nMeu testo fala sobre cachorro\n\n"
+        "![imagem](../../imagens/projetos/outros/teste/img-0.png)\n"
+    )
+    changed = apply(text, reviewer.review(text)["suggestions"], automatic=True)
+    assert "Meu texto fala sobre cachorro." in changed
+    assert "\nLápis.\n" in changed
+    assert "Meu nome é Lucas Perdigão de Oliveira." in changed
+    assert "![imagem](../../imagens/projetos/outros/teste/img-0.png)" in changed
+    assert not reviewer.review(changed)["suggestions"]
+
+
+def test_context_rules_do_not_change_the_valid_verb_or_protected_markdown(tmp_path):
+    reviewer = TextReview(tmp_path)
+    text = "Eu testo o servidor.\n\nQuando testo o servidor, verifico o log.\n\n`Meu testo fala sobre cachorro`\n\n```\nmeu testo fala sobre cachorro\n```"
+    assert apply(text, reviewer.review(text)["suggestions"], automatic=True) == text
+
+
+def test_capitalization_spelling_and_dictionary_can_be_applied_without_overlap(tmp_path):
+    reviewer = TextReview(tmp_path)
+    text = "voce pode mecher no documetno.\n\nmeu testo explica o serviço"
+    changed = apply(text, reviewer.review(text)["suggestions"])
+    assert changed == "Você pode mexer no documento.\n\nMeu texto explica o serviço."
+
+
+def test_common_overlapping_agreement_is_corrected_in_one_pass(tmp_path):
+    reviewer = TextReview(tmp_path)
+    text = "Os servidor está ativos. As pagina está prontas."
+    assert (
+        apply(text, reviewer.review(text)["suggestions"], automatic=True)
+        == "Os servidores estão ativos. As páginas estão prontas."
+    )

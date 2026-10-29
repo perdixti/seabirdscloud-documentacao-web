@@ -23,7 +23,8 @@ const watchers = new Map(),
 let options = {},
   panel,
   floating,
-  lastJob;
+  lastJob,
+  hideTimer;
 export function registerOperationResult(kind, callback) {
   renderers.set(kind, callback);
 }
@@ -66,6 +67,7 @@ export async function rawRequest(url, options = {}) {
 function draw(job) {
   lastJob = job;
   if (!floating) return;
+  clearTimeout(hideTimer);
   const dialog = $("#modal");
   if (dialog?.open && floating.parentElement !== dialog)
     dialog.append(floating);
@@ -79,8 +81,13 @@ function draw(job) {
     Math.max(0, Math.round((Date.now() - Date.parse(job.created_at)) / 1000)) +
     " s";
   floating.dataset.status = job.status;
+  if (job.status === "succeeded")
+    hideTimer = setTimeout(() => {
+      if (lastJob?.id === job.id && lastJob.status === "succeeded")
+        floating.hidden = true;
+    }, 4000);
 }
-function watch(identifier) {
+function watch(identifier, quiet = false) {
   if (watchers.has(identifier)) return watchers.get(identifier);
   const task = (async () => {
     const deadline = Date.now() + 660000;
@@ -93,7 +100,7 @@ function watch(identifier) {
           "A conexão foi interrompida. A operação pode continuar no servidor; consulte Operações para confirmar o resultado.",
         );
       }
-      draw(job);
+      if (!quiet) draw(job);
       if (["succeeded", "failed", "interrupted"].includes(job.status))
         return job;
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -106,7 +113,7 @@ function watch(identifier) {
   task.finally(() => watchers.delete(identifier)).catch(() => {});
   return task;
 }
-export async function runOperation(kind, payload) {
+export async function runOperation(kind, payload, { quiet = false } = {}) {
   const requestId =
     typeof crypto?.randomUUID === "function"
       ? crypto.randomUUID()
@@ -115,8 +122,9 @@ export async function runOperation(kind, payload) {
     method: "POST",
     body: JSON.stringify({ kind, payload, request_id: requestId }),
   });
-  draw(started);
-  const job = await watch(started.id);
+  if (!quiet) draw(started);
+  const job = await watch(started.id, quiet);
+  if (!quiet) draw(job);
   if (job.status !== "succeeded") throw Error(job.error || job.step);
   return job.result;
 }

@@ -7,6 +7,9 @@ import os
 import re
 import unicodedata
 from pathlib import Path
+from urllib.parse import quote
+
+from markdown_it import MarkdownIt
 
 from .filesystem import atomic_write, local_path
 from .models import DocumentInput
@@ -28,6 +31,84 @@ class DocumentFlow:
     def __init__(self, workspace):
         self.workspace = workspace
         self.files = workspace.files
+
+    def context(self, document, required=True, check_cover=True):
+        """Resolve o mesmo site e a mesma capa para geração e formulários."""
+        document = document.model_copy(deep=True)
+        generation = document.generation
+        output = local_path(generation.output_path) if generation.output_path else None
+        if generation.site_dir:
+            root = self.workspace.root(generation.site_dir)
+        else:
+            root = None
+            if output:
+                for parent in [output.parent, *output.parent.parents]:
+                    if (parent / "index.html").is_file():
+                        root = self.workspace.root(str(parent))
+                        break
+            if root is None:
+                for value in [
+                    generation.github_repository_path,
+                    self.workspace.state.get("selected_root", ""),
+                ]:
+                    if value and (output is None or output.is_relative_to(local_path(value))):
+                        root = self.workspace.root(value)
+                        break
+            if root is None:
+                if required:
+                    raise ValueError(
+                        "Não encontrei a raiz do site a partir do HTML de saída. Selecione a pasta que contém o index.html em Configurar arquivos."
+                    )
+                return document
+        if output and not output.is_relative_to(root):
+            raise ValueError("O HTML de saída precisa ficar dentro da raiz do site selecionada.")
+        generation.site_dir = str(root)
+        if not generation.github_repository_path:
+            generation.github_repository_path = str(root)
+        if check_cover and generation.catalog_image:
+            generation.catalog_image = self.cover(root, output, generation.catalog_image)
+        return document
+
+    def cover(self, root, output, value):
+        listing = root / self.workspace.catalog_options(root)[1]
+        targets = set()
+        for base in [listing, output]:
+            if base is None:
+                continue
+            try:
+                targets.add(
+                    self.workspace.catalog_editor.reference(root, base, value, IMAGE_EXTENSIONS)[1]
+                )
+            except ValueError:
+                pass
+        if len(targets) > 1:
+            raise ValueError(
+                "A capa corresponde a duas imagens diferentes. Selecione a imagem pelo botão Escolher capa ou informe seu caminho absoluto."
+            )
+        if not targets:
+            raise ValueError(
+                "Capa não encontrada dentro do site. Use o caminho da imagem no Markdown, no catálogo ou o caminho absoluto de um arquivo existente."
+            )
+        return "/" + quote(targets.pop().relative_to(root).as_posix(), safe="/-._~")
+
+    def first_cover(self, document, root, output):
+        candidates = [image.path for image in document.generation.images]
+        for token in MarkdownIt().parse(document.markdown):
+            for child in token.children or []:
+                if child.type == "image":
+                    try:
+                        target = self.workspace.catalog_editor.reference(
+                            root, output, child.attrGet("src") or "", IMAGE_EXTENSIONS
+                        )[1]
+                        candidates.append(str(target))
+                    except ValueError:
+                        continue
+        for value in candidates:
+            try:
+                return self.cover(root, output, value)
+            except ValueError:
+                continue
+        raise ValueError("Cole uma imagem ou selecione a capa antes de cadastrar a documentação.")
 
     def prepare(self, root, title, category, description, cover="", template=""):
         root = self.workspace.root(root, register=True)
@@ -121,8 +202,17 @@ class DocumentFlow:
 
     def generate(self, document):
         if not document.generation.save_source and not document.generation.register_catalog:
-            return self.files.generate(document)
+            result = self.files.generate(document)
+            context = (
+                {"site_dir": result["site_root"]}
+                if (Path(result["site_root"]) / "index.html").is_file()
+                else {}
+            )
+            return {**result, "context": context}
         with self.workspace.lock:
+            if not document.generation.output_path:
+                raise ValueError("Informe o arquivo HTML de saída antes de gerar a documentação.")
+            document = self.context(document)
             document = self.files.prepare(document)
             generation = document.generation
             root = self.workspace.root(generation.site_dir, register=True)
@@ -150,10 +240,6 @@ class DocumentFlow:
             from .renderer import render_document
 
             changes[output] = render_document(document)
-            if generation.save_source:
-                changes[source_path(output)] = json.dumps(
-                    self.portable(document, root, output), ensure_ascii=False, indent=2
-                )
             catalog = None
             if generation.register_catalog:
                 progress("Preparando o cadastro da documentação", 30)
@@ -164,13 +250,8 @@ class DocumentFlow:
                 link = self.workspace.catalog_editor.reference(
                     root, page, str(output), {".html", ".htm"}, exists=False
                 )[0]
-                cover = generation.catalog_image or (
-                    generation.images[0].path if generation.images else ""
-                )
-                if not cover:
-                    raise ValueError(
-                        "Cole uma imagem ou selecione a capa antes de gerar e cadastrar a documentação."
-                    )
+                cover = generation.catalog_image or self.first_cover(document, root, output)
+                generation.catalog_image = cover
                 image = self.workspace.catalog_editor.reference(
                     root, page, cover, IMAGE_EXTENSIONS
                 )[0]
@@ -205,6 +286,10 @@ class DocumentFlow:
                 }
                 changed = source.change(category, values, matching[0] if matching else "")
                 changes[catalog] = ("\ufeff" if raw.startswith(b"\xef\xbb\xbf") else "") + changed
+            if generation.save_source:
+                changes[source_path(output)] = json.dumps(
+                    self.portable(document, root, output), ensure_ascii=False, indent=2
+                )
             previous = {path: path.read_bytes() if path.is_file() else None for path in changes}
             backups = {path: self.files.backup(path) for path in changes}
             written = []
@@ -221,7 +306,7 @@ class DocumentFlow:
                     if previous[path] is None:
                         path.unlink(missing_ok=True)
                     else:
-                        atomic_write(path, previous[path].decode("utf-8"))
+                        atomic_write(path, previous[path])
                 raise
             if catalog:
                 self.workspace.state.setdefault("catalogs", {})[str(root)] = {
@@ -238,4 +323,9 @@ class DocumentFlow:
                 "source": str(source_path(output)) if generation.save_source else "",
                 "catalog_updated": bool(catalog),
                 "output_version": self.workspace.digest(output),
+                "context": {
+                    "site_dir": str(root),
+                    "github_repository_path": generation.github_repository_path,
+                    "catalog_image": generation.catalog_image,
+                },
             }

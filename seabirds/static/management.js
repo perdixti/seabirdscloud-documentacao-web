@@ -174,28 +174,82 @@ export class ManagementUI {
         $("#modal").close();
       });
   }
-  async metadata() {
-    const generation = this.getDocument().generation;
+  async metadata(values = {}) {
+    const generation = { ...this.getDocument().generation, ...values };
     this.modal(
       "Dados da documentação",
-      '<div class="stack"><label>Categoria<input id="metadata-category" maxlength="100"></label><label>Descrição do card<textarea id="metadata-description" maxlength="2000"></textarea></label><label>Capa<input id="metadata-image" placeholder="Vazio usa a primeira imagem colada"></label><label class="inline-check"><input id="metadata-register" type="checkbox">Cadastrar ou atualizar o card ao gerar HTML</label><label class="inline-check"><input id="metadata-source" type="checkbox">Salvar fonte Markdown e template junto do HTML</label></div><p class="field-hint">Os caminhos do HTML e das imagens continuam disponíveis em Configurar arquivos. A fonte não contém a chave do revisor nem o token do GitHub.</p><button id="metadata-save" class="primary">Salvar dados</button>',
+      '<div class="stack"><label>Categoria<input id="metadata-category" maxlength="100"></label><label>Descrição do card<textarea id="metadata-description" maxlength="2000"></textarea></label><label>Capa<div class="path-input"><input id="metadata-image" placeholder="Vazio usa a primeira imagem do documento"><button id="metadata-choose-image">Escolher capa</button></div></label><p class="field-hint">Aceita o caminho da imagem no Markdown, no catálogo, /imagens/... ou um caminho absoluto. A capa será conferida antes de salvar.</p><label class="inline-check"><input id="metadata-register" type="checkbox">Cadastrar ou atualizar o card ao gerar HTML</label><label class="inline-check"><input id="metadata-source" type="checkbox">Salvar fonte Markdown e template junto do HTML</label></div><p id="metadata-status" class="field-hint" role="status"></p><p class="field-hint">Os caminhos do HTML e das imagens continuam disponíveis em Configurar arquivos. A fonte não contém a chave do revisor nem o token do GitHub.</p><button id="metadata-save" class="primary">Salvar dados</button>',
     );
     $("#metadata-category").value = generation.catalog_category || "";
     $("#metadata-description").value = generation.catalog_description || "";
     $("#metadata-image").value = generation.catalog_image || "";
     $("#metadata-register").checked = !!generation.register_catalog;
     $("#metadata-source").checked = !!generation.save_source;
-    $("#metadata-save").onclick = () => {
-      this.setMetadata({
-        catalog_category: $("#metadata-category").value.trim(),
-        catalog_description: $("#metadata-description").value.trim(),
-        catalog_image: $("#metadata-image").value.trim(),
-        register_catalog: $("#metadata-register").checked,
-        save_source: $("#metadata-source").checked,
+    const snapshot = () => ({
+      catalog_category: $("#metadata-category").value.trim(),
+      catalog_description: $("#metadata-description").value.trim(),
+      catalog_image: $("#metadata-image").value.trim(),
+      register_catalog: $("#metadata-register").checked,
+      save_source: $("#metadata-source").checked,
+    });
+    $("#metadata-choose-image").onclick = () =>
+      this.guard(async () => {
+        const saved = snapshot(),
+          target = document.createElement("input");
+        target.value =
+          this.getDocument().generation.images_dir || this.getRoot() || "";
+        if (await this.pickImage(target)) saved.catalog_image = target.value;
+        await this.metadata(saved);
       });
-      $("#modal").close();
-      this.toast("Dados atualizados. Gere o HTML para gravar.");
-    };
+    $("#metadata-save").onclick = () =>
+      this.guard(async () => {
+        const button = $("#metadata-save"),
+          metadata = snapshot();
+        button.disabled = true;
+        try {
+          if (
+            metadata.register_catalog &&
+            (!metadata.catalog_category || !metadata.catalog_description)
+          )
+            throw Error(
+              "Preencha categoria e descrição para cadastrar a documentação.",
+            );
+          const document = this.getDocument();
+          if (
+            document.generation.output_path &&
+            (metadata.register_catalog ||
+              metadata.save_source ||
+              metadata.catalog_image)
+          ) {
+            const result = await this.api("/api/site/documents/context", {
+              method: "POST",
+              body: JSON.stringify({
+                ...document,
+                generation: { ...document.generation, ...metadata },
+              }),
+            });
+            Object.assign(
+              metadata,
+              Object.fromEntries(
+                ["site_dir", "github_repository_path", "catalog_image"].map(
+                  (key) => [key, result.generation[key]],
+                ),
+              ),
+            );
+          }
+          this.setMetadata(metadata);
+          await this.saveDraft?.();
+          $("#modal").close();
+          this.toast(
+            "Dados conferidos e salvos no rascunho. Gere o HTML para atualizar os arquivos.",
+          );
+        } catch (error) {
+          $("#metadata-status").textContent = error.message;
+          throw error;
+        } finally {
+          button.disabled = false;
+        }
+      });
   }
   async backups() {
     const state = await this.api("/api/maintenance/backups"),

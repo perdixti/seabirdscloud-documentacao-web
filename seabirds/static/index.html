@@ -308,6 +308,7 @@
               <label>Revisão <select id="review-mode"><option value="off">Desativada</option><option value="suggest" selected>Sugerir</option><option value="auto">Automático (casos seguros)</option><option value="auto-all">Automático (todas as sugestões)</option></select></label>
               <button id="review-undo" disabled>Desfazer revisão</button>
               <button id="review-settings">Configurar revisor</button>
+              <small id="review-status" role="status" aria-live="polite">Revisão local: confira as sugestões.</small>
             </div>
             <div class="workspace-controls">
               <div aria-label="Modo do editor" class="view-switch">
@@ -724,6 +725,20 @@ O conteúdo será inserido no seu template HTML."
             para todas as sugestões. Confira termos técnicos e casos ambíguos.
             <b>Desfazer revisão</b> ou Ctrl+Z recupera o texto anterior.
             Configure palavras ignoradas em <b>Configurar revisor</b>.
+          </p>
+          <p>
+            Casos como <code>Meu testo fala sobre cachorro</code> são corrigidos
+            pelo contexto, preservando <code>Eu testo o servidor.</code>.
+            Sugestões que precisam de aprovação continuam disponíveis depois
+            das correções automáticas. A revisão local tem contexto limitado;
+            confira o resultado antes de gerar o HTML.
+          </p>
+          <p>
+            A geração e o catálogo detectam a raiz pela pasta do
+            <code>index.html</code> acima do HTML de saída. Em
+            <b>Dados da documentação</b>, use <b>Escolher capa</b> ou informe
+            o caminho da imagem no Markdown, no catálogo ou seu caminho
+            absoluto. Se a capa não existir, o formulário mantém sua edição.
           </p>
           <h2>Manutenção pelo navegador</h2>
           <p>

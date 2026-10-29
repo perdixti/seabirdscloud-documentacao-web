@@ -94,14 +94,14 @@ def read_utf8(path: Path, limit=2_000_000) -> str:
     return path.read_text(encoding="utf-8-sig")
 
 
-def atomic_write(path: Path, content: str):
+def atomic_write(path: Path, content: str | bytes):
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary = tempfile.mkstemp(prefix=".seabirds-", dir=path.parent)
     try:
-        with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as stream:
+        with os.fdopen(descriptor, "wb") as stream:
             if os.name == "posix" and path.is_file():
                 os.fchmod(stream.fileno(), stat.S_IMODE(path.stat().st_mode) & 0o777)
-            stream.write(content)
+            stream.write(content.encode("utf-8") if isinstance(content, str) else content)
             stream.flush()
             os.fsync(stream.fileno())
         os.replace(temporary, path)

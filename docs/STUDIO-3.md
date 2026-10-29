@@ -40,7 +40,7 @@ O editor oferece revisão local de português, sugestões, correção automátic
 
 ## Atualizar o servidor
 
-Extraia o pacote 3.0.1 fora de `/opt/seabirds/app`. Dentro da pasta extraída `SeaBirdsCloud`, como root:
+Extraia o pacote 3.0.2 fora de `/opt/seabirds/app`. Dentro da pasta extraída `SeaBirdsCloud`, como root:
 
 ```bash
 bash deploy/update-app.sh

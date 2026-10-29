@@ -2434,6 +2434,7 @@ dialog::backdrop {
 }
 .review-toolbar select { min-width: 0; max-width: 100%; padding: 7px 9px; }
 .review-toolbar button { font-size: 11px; padding: 7px 10px; }
+#review-status { flex: 1 1 190px; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
 .operation-card { position: fixed; right: 20px; bottom: 18px; width: min(350px, calc(100vw - 40px)); padding: 16px; background: var(--panel, white); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 30px #142e3930; z-index: 1000; font-size: 12px; }
 .operation-card[hidden] { display: none; }
 .operation-card > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }

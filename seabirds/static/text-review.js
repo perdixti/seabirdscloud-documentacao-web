@@ -10,7 +10,10 @@ export class TextReviewer {
     $("#review-settings").onclick = () => this.guard(() => this.settings());
     $("#review-mode").onchange = () => {
       this.setMode($("#review-mode").value);
+      const revision = this.revision;
       this.reset();
+      this.revision = revision;
+      $("#review-undo").disabled = !revision;
       this.changed();
     };
     $("#review-undo").onclick = () => this.undo();
@@ -28,19 +31,58 @@ export class TextReviewer {
     this.result = null;
     this.lastAnalyzed = null;
     this.revision = null;
+    this.observedText = null;
     this.blocked.clear();
     $("#review-mode").value = this.getMode();
     $("#review-undo").disabled = true;
     $("#review-text").textContent = "Revisar texto";
+    this.status(
+      "Confira as sugestões. O revisor local tem análise limitada de contexto.",
+    );
+  }
+  status(message) {
+    const status = $("#review-status");
+    if (status) status.textContent = message;
+  }
+  renderCount() {
+    const count = this.result?.suggestions.length || 0;
+    $("#review-text").textContent = "Revisar texto (" + count + ")";
+    this.status(
+      count
+        ? count +
+            (count === 1
+              ? " sugestão para conferir."
+              : " sugestões para conferir.") +
+            (this.result.truncated
+              ? " Revise um trecho menor para ver as demais."
+              : "")
+        : "Revisão concluída: nenhuma sugestão neste trecho.",
+    );
   }
   changed() {
+    const text = this.getText();
+    if (text === this.observedText) return;
+    this.observedText = text;
     clearTimeout(this.timer);
     this.sequence++;
+    if (this.result?.snapshot !== text) {
+      this.result = null;
+      $("#review-text").textContent = "Revisar texto";
+    }
     if (this.revision && this.getText() === this.revision.before) {
       this.revision = null;
       $("#review-undo").disabled = true;
     }
     if (this.applying || this.getMode() === "off") return;
+    this.status(
+      this.blocked.has(text)
+        ? "Revisão desfeita. Use Revisar texto para conferir novamente."
+        : "Aguardando pausa na digitação…",
+    );
+    this.schedule();
+  }
+  schedule() {
+    clearTimeout(this.timer);
     this.timer = setTimeout(
       () => this.guard(() => this.analyze(false)),
       this.cloud ? 12000 : 1800,
@@ -48,8 +90,10 @@ export class TextReviewer {
   }
   async analyze(manual = true) {
     if (this.running) {
-      if (manual) this.toast("Uma revisão já está em andamento.");
-      return;
+      if (!manual) return;
+      await this.pendingAnalysis;
+      if (this.result?.snapshot === this.getText()) return this.result;
+      return this.analyze(true);
     }
     const snapshot = this.getText(),
       element = this.editor.element;
@@ -68,6 +112,7 @@ export class TextReviewer {
     )
       return;
     if (text.length > 50000) {
+      this.status("Selecione um trecho de até 50 mil caracteres para revisar.");
       if (manual)
         throw Error(
           "Selecione um trecho de até 50 mil caracteres para revisar.",
@@ -77,8 +122,14 @@ export class TextReviewer {
     this.running = true;
     const sequence = this.sequence;
     $("#review-text").textContent = "Revisando…";
+    this.status("Revisando o texto…");
     try {
-      const result = await runOperation("text.review", { text });
+      this.pendingAnalysis = runOperation(
+        "text.review",
+        { text },
+        { quiet: !manual },
+      );
+      const result = await this.pendingAnalysis;
       if (snapshot !== this.getText() || sequence !== this.sequence) {
         if (manual)
           this.toast("O texto mudou durante a revisão. Revise novamente.");
@@ -87,8 +138,7 @@ export class TextReviewer {
       this.result = { ...result, snapshot, offset };
       this.cloud = result.provider === "openai";
       this.lastAnalyzed = snapshot;
-      $("#review-text").textContent =
-        "Revisar texto (" + result.suggestions.length + ")";
+      this.renderCount();
       if (!manual && ["auto", "auto-all"].includes(this.getMode())) {
         const safe =
           this.getMode() === "auto-all"
@@ -97,6 +147,9 @@ export class TextReviewer {
         if (safe.length) this.apply(safe);
       }
       return this.result;
+    } catch (error) {
+      this.status(error.message);
+      throw error;
     } finally {
       this.running = false;
       if (!this.result) $("#review-text").textContent = "Revisar texto";
@@ -105,7 +158,7 @@ export class TextReviewer {
         this.getMode() !== "off" &&
         !this.applying
       )
-        this.changed();
+        this.schedule();
     }
   }
   async open() {
@@ -142,6 +195,9 @@ export class TextReviewer {
     if (!controls.length)
       $("#review-suggestions").textContent =
         "Nenhuma correção identificada por este revisor.";
+    if (!controls.length)
+      $("#review-explanation").textContent +=
+        " A ausência de sugestões não garante que o texto esteja correto.";
     $("#review-apply").disabled = !controls.length;
     $("#review-apply").onclick = () =>
       this.guard(() => {
@@ -178,14 +234,28 @@ export class TextReviewer {
       this.editor.replace(after, 0, before.length);
       this.revision = { before, after };
       $("#review-undo").disabled = false;
-      this.result = null;
+      const remaining = result.suggestions
+        .filter((item) => !items.includes(item))
+        .map((item) => {
+          const shift = items
+            .filter((applied) => applied.end <= item.start)
+            .reduce(
+              (total, applied) =>
+                total + applied.after.length - (applied.end - applied.start),
+              0,
+            );
+          return { ...item, start: item.start + shift, end: item.end + shift };
+        });
+      this.result = { ...result, snapshot: after, suggestions: remaining };
       this.lastAnalyzed = after;
-      $("#review-text").textContent = "Revisar texto";
+      this.renderCount();
     } finally {
       this.applying = false;
     }
     this.toast(
-      items.length + " correção(ões) aplicada(s). Você pode desfazer.",
+      items.length === 1
+        ? "1 correção aplicada. Você pode desfazer."
+        : items.length + " correções aplicadas. Você pode desfazer.",
     );
   }
   undo() {
@@ -200,6 +270,8 @@ export class TextReviewer {
     this.revision = null;
     this.result = null;
     $("#review-undo").disabled = true;
+    $("#review-text").textContent = "Revisar texto";
+    this.status("Revisão desfeita. Use Revisar texto para conferir novamente.");
     this.toast("Revisão desfeita.");
   }
   async settings() {

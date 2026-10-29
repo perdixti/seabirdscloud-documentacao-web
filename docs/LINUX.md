@@ -1,22 +1,22 @@
-# Linux e LXC — versão 3.0.1
+# Linux e LXC — versão 3.0.2
 
 A aplicação usa a mesma interface, gerador, template e catálogo de imagens no Windows e no Linux. Os caminhos pertencem à máquina do servidor. No LXC, um caminho como `/opt/Meu site` deve existir e estar acessível ao usuário `seabirds`.
 
 ## Atualizar o LXC existente
 
-Copie `SeaBirdsCloud-LXC-Debian13-3.0.1.zip` para `/root` do LXC. Como root, dentro do container:
+Copie `SeaBirdsCloud-LXC-Debian13-3.0.2.zip` para `/root` do LXC. Como root, dentro do container:
 
 ```bash
 apt-get update
 apt-get install -y unzip
-mkdir -p /root/seabirds-update-3.0.1
-unzip SeaBirdsCloud-LXC-Debian13-3.0.1.zip -d /root/seabirds-update-3.0.1
-cd /root/seabirds-update-3.0.1/SeaBirdsCloud
+mkdir -p /root/seabirds-update-3.0.2
+unzip SeaBirdsCloud-LXC-Debian13-3.0.2.zip -d /root/seabirds-update-3.0.2
+cd /root/seabirds-update-3.0.2/SeaBirdsCloud
 sha256sum -c MANIFEST.sha256
 bash deploy/update-app.sh
 ```
 
-O instalador preserva `/var/lib/seabirds` (banco, rascunhos, históricos e lixeiras), `/srv/seabirds` (sites) e a configuração já existente em `/etc/seabirds/seabirds.env`. Faça backup desses caminhos antes da atualização. As credenciais antigas continuam funcionando. Na versão 3.0.1, autor e token também podem ser gerenciados em **Configurar GitHub**, sem reiniciar o serviço; veja [GitHub Web](GITHUB-WEB.md).
+O instalador preserva `/var/lib/seabirds` (banco, rascunhos, históricos e lixeiras), `/srv/seabirds` (sites) e a configuração já existente em `/etc/seabirds/seabirds.env`. Faça backup desses caminhos antes da atualização. As credenciais antigas continuam funcionando. Na versão 3.0.2, autor e token também podem ser gerenciados em **Configurar GitHub**, sem reiniciar o serviço; veja [GitHub Web](GITHUB-WEB.md).
 
 ## Usar um clone existente em /opt
 

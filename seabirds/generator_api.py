@@ -304,6 +304,11 @@ def generator_router(settings, store=None, jobs=None, gate=None):
                 path = filedialog.askopenfilename(
                     parent=root, filetypes=[("Markdown", "*.md *.txt")]
                 )
+            elif kind == "image":
+                path = filedialog.askopenfilename(
+                    parent=root,
+                    filetypes=[("Imagens", "*.png *.jpg *.jpeg *.webp *.gif *.svg *.ico")],
+                )
             else:
                 raise ValueError("Tipo de seleção inválido.")
         except tk.TclError:
@@ -344,6 +349,16 @@ def generator_router(settings, store=None, jobs=None, gate=None):
             }:
                 entries.append({"name": path.name, "path": str(path), "directory": False})
             elif payload.kind == "markdown" and path.suffix.lower() in {".md", ".txt"}:
+                entries.append({"name": path.name, "path": str(path), "directory": False})
+            elif payload.kind == "image" and path.suffix.lower() in {
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".webp",
+                ".gif",
+                ".svg",
+                ".ico",
+            }:
                 entries.append({"name": path.name, "path": str(path), "directory": False})
             if len(entries) >= 1000:
                 break
