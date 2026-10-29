@@ -1,4 +1,4 @@
-# Instalar SeaBirdsCloud 3.0.0 no LXC Debian 13
+# Instalar SeaBirdsCloud 3.0.1 no LXC Debian 13
 
 Para atualizar uma instalação existente ou preparar um clone em `/opt`, veja primeiro [Linux e LXC](docs/LINUX.md).
 
@@ -6,10 +6,10 @@ Execute os comandos dentro de um LXC Debian 13 não privilegiado, como root. O i
 
 ## 1. Copiar e instalar
 
-Copie `SeaBirdsCloud-LXC-Debian13-3.0.0.zip` para `/root` do LXC. Em um terminal Windows com acesso SSH ao container, uma opção é:
+Copie `SeaBirdsCloud-LXC-Debian13-3.0.1.zip` para `/root` do LXC. Em um terminal Windows com acesso SSH ao container, uma opção é:
 
 ```powershell
-scp SeaBirdsCloud-LXC-Debian13-3.0.0.zip root@IP-DO-LXC:/root/
+scp SeaBirdsCloud-LXC-Debian13-3.0.1.zip root@IP-DO-LXC:/root/
 ```
 
 No terminal do LXC:
@@ -18,7 +18,7 @@ No terminal do LXC:
 apt-get update
 apt-get install -y unzip
 cd /root
-unzip SeaBirdsCloud-LXC-Debian13-3.0.0.zip
+unzip SeaBirdsCloud-LXC-Debian13-3.0.1.zip
 cd SeaBirdsCloud
 sha256sum -c MANIFEST.sha256
 bash deploy/install-debian.sh

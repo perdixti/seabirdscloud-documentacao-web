@@ -301,14 +301,14 @@
               </svg>
             </button>
           </div>
-          <div class="review-toolbar">
-            <button id="document-metadata">Dados da documentação</button>
-            <button id="review-text">Revisar texto</button>
-            <label>Revisão <select id="review-mode"><option value="off">Desativada</option><option value="suggest" selected>Sugerir</option><option value="auto">Automático (casos seguros)</option><option value="auto-all">Automático (todas as sugestões)</option></select></label>
-            <button id="review-undo" disabled>Desfazer revisão</button>
-            <button id="review-settings">Configurar revisor</button>
-          </div>
           <div class="editor-card">
+            <div class="review-toolbar" role="group" aria-label="Revisão da documentação">
+              <button id="document-metadata">Dados da documentação</button>
+              <button id="review-text">Revisar texto</button>
+              <label>Revisão <select id="review-mode"><option value="off">Desativada</option><option value="suggest" selected>Sugerir</option><option value="auto">Automático (casos seguros)</option><option value="auto-all">Automático (todas as sugestões)</option></select></label>
+              <button id="review-undo" disabled>Desfazer revisão</button>
+              <button id="review-settings">Configurar revisor</button>
+            </div>
             <div class="workspace-controls">
               <div aria-label="Modo do editor" class="view-switch">
                 <button

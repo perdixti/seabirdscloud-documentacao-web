@@ -1,5 +1,13 @@
 # Validação — fluxo de geração HTML
 
+## Correção visual 3.0.1 — 29/10/2026
+
+- A barra de revisão foi movida para dentro do painel do editor, preservando as quatro linhas do layout principal. Corrigido o alinhamento do seletor, que herdava a direção vertical dos formulários.
+- Navegador: 1920 × 1080, 1366 × 768 e 390 × 844, sem rolagem horizontal. Barra com 54 px nas telas maiores; editor e prévia preenchendo o painel. Modo expandido conferido em notebook e celular, com os dois painéis dentro da altura disponível.
+- As 23 verificações de integração do editor e os testes DOM de revisão, automático, desfazer e assistente passaram. Não houve alteração no processamento dos documentos.
+- O aviso de CSS ausente na prévia de um template sem raiz configurada continua indicando um arquivo do site não localizado; selecione a pasta que contém o index.html para resolver as referências do template.
+
+
 ## Executado na versão 3.0.0 — 29/10/2026
 
 - Suíte de 194 casos: Windows/Python 3.12 com **186 aprovados e 8 ignorados**; Linux/Python 3.12 e 3.13 com **193 aprovados e 1 ignorado** em cada execução. Os casos ignorados dependem da plataforma ou de configuração opcional. Há um aviso de depreciação do adaptador httpx do TestClient, sem falha nos testes.

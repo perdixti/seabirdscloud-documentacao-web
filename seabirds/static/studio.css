@@ -2281,15 +2281,20 @@ dialog::backdrop {
   .focus-mode .editor-layout {
     flex: 1;
     min-height: 0;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   }
   .focus-mode .editor-panel,
   .focus-mode .preview-panel {
-    height: calc((100dvh - 72px) / 2);
+    height: auto;
     min-height: 0;
   }
   .focus-mode .editor-layout[data-view="source"] .editor-panel,
   .focus-mode .editor-layout[data-view="preview"] .preview-panel {
-    height: calc(100dvh - 72px);
+    height: auto;
+  }
+  .focus-mode .editor-layout[data-view="source"],
+  .focus-mode .editor-layout[data-view="preview"] {
+    grid-template-rows: minmax(0, 1fr);
   }
   #settings-drawer {
     width: 100vw;
@@ -2408,9 +2413,26 @@ dialog::backdrop {
   }
 }
 /* Cadastro dos cards do site. */
-.review-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
-.review-toolbar label { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 11px; }
-.review-toolbar select { min-width: 115px; padding: 7px 9px; }
+.review-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: none;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--code);
+}
+.review-toolbar label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+  font-size: 11px;
+}
+.review-toolbar select { min-width: 0; max-width: 100%; padding: 7px 9px; }
 .review-toolbar button { font-size: 11px; padding: 7px 10px; }
 .operation-card { position: fixed; right: 20px; bottom: 18px; width: min(350px, calc(100vw - 40px)); padding: 16px; background: var(--panel, white); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 30px #142e3930; z-index: 1000; font-size: 12px; }
 .operation-card[hidden] { display: none; }
