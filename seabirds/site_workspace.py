@@ -10,12 +10,12 @@ from datetime import UTC, datetime
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
-from uuid import uuid4
 
 from .filesystem import atomic_write, local_path
 from .github import GitHubPublisher, github_repository
 from .local_editor import LocalEditor
 from .page_deletion import PageDeletion
+from .page_trash import PageTrash
 from .paths import folder_access
 from .project_catalog import ProjectCatalog
 from .storage import ConflictError
@@ -252,6 +252,7 @@ class SiteWorkspace:
                             "size": stat.st_size,
                             "modified_at": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
                             "version": version,
+                            "has_source": path.with_suffix(".documentacao.json").is_file(),
                         }
                     )
             pages.sort(key=lambda item: (item["path"] != "index.html", item["path"].casefold()))
@@ -361,72 +362,14 @@ class SiteWorkspace:
     def trash_pages(self, value, selections):
         with self.lock:
             root = self.root(value, register=True)
-            checked = []
-            seen = set()
-            for selection in selections:
-                path = self.page(root, selection.path)
-                if self.digest(path) != selection.version:
-                    raise ConflictError(
-                        "Uma página mudou após a listagem. Atualize a lista antes de excluir: "
-                        + selection.path
-                    )
-                if path not in seen:
-                    checked.append((path, selection))
-                    seen.add(path)
-            changed = []
-            for path, selection in checked:
-                identifier = uuid4().hex
-                destination = self.directory / "page-trash" / (identifier + path.suffix)
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                with path.open("rb") as source, destination.open("xb") as target:
-                    shutil.copyfileobj(source, target)
-                    target.flush()
-                    os.fsync(target.fileno())
-                if (
-                    self.digest(destination) != selection.version
-                    or self.digest(path) != selection.version
-                ):
-                    destination.unlink()
-                    raise ConflictError(
-                        "A página mudou durante a operação. Atualize a lista antes de excluir."
-                    )
-                entry = {
-                    "id": identifier,
-                    "root": str(root),
-                    "relative": selection.path,
-                    "digest": selection.version,
-                    "trash_file": destination.name,
-                    "trashed_at": datetime.now(UTC).isoformat(),
-                }
-                # Registra a cópia recuperável antes de retirar a página do site.
-                self.state["trash"].append(entry)
-                self.persist()
-                path.unlink()
-                changed.append(selection.path)
-            return {"changed": changed, "trash": self.trash_entries(root)}
+            return PageTrash(self).trash(root, selections)
 
     def restore_page(self, identifier):
         with self.lock:
             entry = next((item for item in self.state["trash"] if item["id"] == identifier), None)
             if not entry:
                 raise ValueError("Página não encontrada na lixeira.")
-            root = self.root(entry["root"])
-            destination = self.page(root, entry["relative"], require_exists=False)
-            source = self.trash_file(entry)
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                with source.open("rb") as old, destination.open("xb") as new:
-                    shutil.copyfileobj(old, new)
-                    new.flush()
-                    os.fsync(new.fileno())
-            except FileExistsError as exc:
-                raise ValueError(
-                    "Já existe uma página neste caminho. Renomeie-a antes de restaurar."
-                ) from exc
-            source.unlink()
-            self.state["trash"].remove(entry)
-            self.persist()
-            return {"root": str(root), "path": entry["relative"]}
+            return PageTrash(self).restore(entry)
 
     def trash_file(self, entry):
         trash = self.directory / "page-trash"

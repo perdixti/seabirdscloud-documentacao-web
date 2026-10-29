@@ -6,6 +6,13 @@ import { renderProjectHistory } from "./project-history.js";
 import { GitHubPublication } from "./github.js";
 import { SiteManager } from "./site-manager.js";
 import { openProjectCatalog } from "./catalog.js";
+import {
+  request,
+  setupOperations,
+  registerOperationResult,
+} from "./operations.js";
+import { ManagementUI } from "./management.js";
+import { TextReviewer } from "./text-review.js";
 
 const $ = (selector) => document.querySelector(selector);
 const optionsDefault = {
@@ -81,6 +88,65 @@ const githubPublication = new GitHubPublication({
   },
   pickFolder: (target) => pick("folder", target),
 });
+async function openDocument(doc) {
+  await imageQueue;
+  if (state.dirty || state.id) await saveAll();
+  fill(doc);
+  markDirty();
+  document.querySelector('[data-tab="editor-tab"]').click();
+}
+const management = new ManagementUI({
+  api,
+  modal,
+  toast,
+  getRoot: () =>
+    $("#site-directory").value.trim() ||
+    $("#site-dir").value.trim() ||
+    $("#github-repo-path").value.trim(),
+  getTemplate: () => $("#template-path").value.trim(),
+  pickFolder: (target) => pick("folder", target),
+  pickTemplate: (target) => pick("template", target),
+  openDocument,
+  getDocument: data,
+  setMetadata: (metadata) => {
+    Object.assign(state.generation, metadata);
+    markDirty();
+  },
+  saveDraft: saveAll,
+  afterRestore: () => {
+    clearInterval(autoTimer);
+    state.dirty = false;
+    forget(draftKey());
+    location.reload();
+  },
+});
+const reviewer = new TextReviewer({
+  api,
+  modal,
+  toast,
+  editor,
+  getText: () => $("#editor").value,
+  getMode: () => state.generation.review_mode || "suggest",
+  setMode: (mode) => {
+    state.generation.review_mode = mode;
+    markDirty();
+  },
+});
+registerOperationResult("github.review", (result) => {
+  githubPublication.mode = "document";
+  githubPublication.renderReview(result);
+});
+registerOperationResult("github.review-site", (result) => {
+  githubPublication.mode = "site";
+  githubPublication.siteDirectory = result.site_root;
+  githubPublication.renderReview(result);
+});
+registerOperationResult("github.publish", (result) =>
+  githubPublication.result(result),
+);
+registerOperationResult("github.retry", (result) =>
+  githubPublication.result(result),
+);
 new SiteManager({
   api,
   modal,
@@ -89,21 +155,22 @@ new SiteManager({
     $("#github-repo-path").value.trim() || $("#site-dir").value.trim(),
   pickFolder: (target) => pick("folder", target),
   publishSite: (root) => githubPublication.reviewSite(root),
-  configureGitHub: (root, afterSave, onBack) => githubPublication.configure(root, afterSave, onBack),
-  openCatalog: (root) => openProjectCatalog({api, modal, root, publishSite: value => githubPublication.reviewSite(value)}),
-  newDocument: async (root) => {
-    await imageQueue;
-    if (state.dirty || state.id) await saveAll();
-    fill({
-      generation: {
-        site_dir: root,
-        github_repository_path: root,
-        images_dir: root.replace(/[\\/]+$/, "") + "/imagens",
-      },
+  configureGitHub: (root, afterSave, onBack) =>
+    githubPublication.configure(root, afterSave, onBack),
+  openCatalog: (root) =>
+    openProjectCatalog({
+      api,
+      modal,
+      root,
+      publishSite: (value) => githubPublication.reviewSite(value),
+    }),
+  newDocument: (root) => management.wizard(root),
+  openSource: async (root, path) => {
+    const doc = await api("/api/site/documents/source", {
+      method: "POST",
+      body: JSON.stringify({ root, path }),
     });
-    markDirty();
-    document.querySelector('[data-tab="editor-tab"]').click();
-    $("#title").focus();
+    await openDocument(doc);
   },
 });
 
@@ -126,34 +193,17 @@ function on(selector, action) {
   $(selector).addEventListener("click", () => guarded(action));
 }
 async function api(url, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...(options.body instanceof FormData
-        ? {}
-        : { "Content-Type": "application/json" }),
-      ...options.headers,
-    },
-  });
-  if (!response.ok) {
-    let message = `Falha na operação (${response.status}).`;
-    try {
-      const result = await response.json();
-      message = Array.isArray(result.detail)
-        ? result.detail.map((item) => item.msg).join("; ")
-        : result.detail || message;
-    } catch {}
-    throw Error(message);
-  }
-  return response.json();
+  return request(url, options);
 }
 function data() {
   const generation = { ...state.generation };
+  const previousOutput = generation.output_path;
   for (const [field, id] of Object.entries(generationFields))
     generation[field] =
       field === "image_index"
         ? Math.max(0, Number($("#" + id).value) || 0)
         : $("#" + id).value.trim();
+  if (generation.output_path !== previousOutput) generation.output_version = "";
   return {
     title: $("#title").value.trim() || "Documentação",
     markdown: $("#editor").value,
@@ -188,6 +238,7 @@ function markDirty() {
   updateCounts();
   updateWorkspace(true);
   images.render();
+  reviewer.changed();
 }
 function scheduleAuto(restart = false) {
   if (autoTimer && !restart) return;
@@ -221,6 +272,7 @@ async function saveOnce() {
     state.id = result.id;
     state.version = result.version;
     if (tick === state.tick) {
+      state.generation = { ...state.generation, ...snapshot.generation };
       state.dirty = false;
       forget(key);
       forget(draftKey());
@@ -278,6 +330,7 @@ function fill(doc) {
   $("#generation-result").classList.remove("success");
   renderOptions();
   templateStatus();
+  reviewer.reset();
   scheduleAuto(true);
   schedulePreview();
   updateCounts();
@@ -546,10 +599,24 @@ async function generate() {
       throw Error("Selecione ou informe o arquivo HTML de saída.");
   }
   await saveAll();
+  const requested = data();
   const result = await api("/api/generator/generate", {
     method: "POST",
-    body: JSON.stringify(data()),
+    body: JSON.stringify(requested),
   });
+  if (data().generation.output_path !== requested.generation.output_path) {
+    toast(
+      "HTML gerado em " +
+        result.path +
+        ". O destino atual foi alterado durante a operação.",
+    );
+    return;
+  }
+  if (result.output_version) {
+    state.generation.output_version = result.output_version;
+    markDirty();
+    await saveAll();
+  }
   state.view = result.url;
   $("#preview").src = result.url;
   showPreviewLocation(result);
@@ -640,13 +707,23 @@ on("#generate", generate);
 on("#document-catalog", async () => {
   await imageQueue;
   const document = data();
-  const root = document.generation.site_dir || document.generation.github_repository_path;
-  if (!root) throw Error("Selecione a raiz do site em Configurar arquivos antes de cadastrar a documentação.");
-  await openProjectCatalog({api, modal, root, publishSite: value => githubPublication.reviewSite(value), draft: {
-    title: document.title,
-    output_path: document.generation.output_path,
-    image_path: document.generation.images?.[0]?.path || "",
-  }});
+  const root =
+    document.generation.site_dir || document.generation.github_repository_path;
+  if (!root)
+    throw Error(
+      "Selecione a raiz do site em Configurar arquivos antes de cadastrar a documentação.",
+    );
+  await openProjectCatalog({
+    api,
+    modal,
+    root,
+    publishSite: (value) => githubPublication.reviewSite(value),
+    draft: {
+      title: document.title,
+      output_path: document.generation.output_path,
+      image_path: document.generation.images?.[0]?.path || "",
+    },
+  });
 });
 on("#refresh-preview", () => refreshPreview());
 function updateViewLink() {
@@ -716,12 +793,7 @@ on("#save-markdown", () =>
     "documentacao.md",
   ),
 );
-on("#new-project", async () => {
-  await imageQueue;
-  if (state.dirty || state.id) await saveAll();
-  fill({});
-  $("#title").focus();
-});
+on("#new-project", () => management.wizard());
 on("#open-markdown", () => $("#markdown-file").click());
 $("#markdown-file").addEventListener("change", () =>
   guarded(async () => {
@@ -1086,6 +1158,7 @@ on("#replace-scan", () => scanTool("replace", "replace"));
 on("#format-scan", () => scanTool("format", "format"));
 
 setupWorkspace();
+setupOperations({ modal, toast });
 guarded(async () => {
   try {
     document.documentElement.dataset.theme =

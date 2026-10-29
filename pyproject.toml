@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "seabirds-docs"
-version = "2.9.0"
+version = "3.0.0"
 description = "Editor e gerador de documentação SeaBirdsCloud"
 requires-python = ">=3.12"
 dependencies = [
@@ -14,6 +14,7 @@ dependencies = [
   "Markdown>=3.7,<4",
   "cryptography>=50,<51",
   "esprima>=4,<5",
+  "pyspellchecker>=0.9.1,<1",
 ]
 
 [project.optional-dependencies]

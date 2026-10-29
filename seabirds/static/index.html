@@ -183,6 +183,7 @@
           ><strong id="active-screen">Editor HTML</strong>
         </div>
         <div class="header-actions">
+          <button id="server-backups">Backups</button>
           <button
             data-open-settings="template-path"
             id="open-settings"
@@ -299,6 +300,13 @@
                 <use href="#icon-chevron"></use>
               </svg>
             </button>
+          </div>
+          <div class="review-toolbar">
+            <button id="document-metadata">Dados da documentação</button>
+            <button id="review-text">Revisar texto</button>
+            <label>Revisão <select id="review-mode"><option value="off">Desativada</option><option value="suggest" selected>Sugerir</option><option value="auto">Automático (casos seguros)</option><option value="auto-all">Automático (todas as sugestões)</option></select></label>
+            <button id="review-undo" disabled>Desfazer revisão</button>
+            <button id="review-settings">Configurar revisor</button>
           </div>
           <div class="editor-card">
             <div class="workspace-controls">
@@ -601,6 +609,8 @@ O conteúdo será inserido no seu template HTML."
             role="status"
           ></div>
           <div class="site-main-actions">
+            <button id="site-audit">Verificar site</button>
+            <button id="site-diagnostics">Diagnóstico</button>
             <button id="site-github-settings">Configurar GitHub</button>
             <button id="site-catalog">Catálogo de documentações</button>
             <button id="site-new-document">Nova documentação neste site</button
@@ -697,6 +707,37 @@ O conteúdo será inserido no seu template HTML."
         </section>
         <section class="tab-page manual" hidden="" id="manual-tab">
           <h1>Manual de utilização</h1>
+          <h2>Criação guiada e fonte editável</h2>
+          <p>
+            Em <b>Nova documentação</b>, escolha a raiz do site, template,
+            título, categoria, descrição e capa. Os caminhos sugeridos podem ser
+            ajustados. Em <b>Dados da documentação</b>, habilite guardar a fonte
+            e atualizar o catálogo para gerar HTML, fonte e card juntos.
+            A fonte <code>.documentacao.json</code> permite reabrir o Markdown
+            em <b>Site e repositórios</b>. A publicação continua exigindo revisão.
+          </p>
+          <h2>Revisão de português</h2>
+          <p>
+            <b>Revisar texto</b> analisa a seleção ou até 50 mil caracteres do
+            documento. O modo local usa regras e dicionário sem GPU ou envio de
+            texto. Escolha sugerir, automático para casos seguros ou automático
+            para todas as sugestões. Confira termos técnicos e casos ambíguos.
+            <b>Desfazer revisão</b> ou Ctrl+Z recupera o texto anterior.
+            Configure palavras ignoradas em <b>Configurar revisor</b>.
+          </p>
+          <h2>Manutenção pelo navegador</h2>
+          <p>
+            <b>Verificar site</b> verifica referências locais e catálogo, incluindo
+            maiúsculas e minúsculas nos caminhos. <b>Diagnóstico</b> ajuda a
+            conferir permissões, Git e editor. <b>Operações</b> mostra a etapa
+            e o resultado das tarefas mesmo após recarregar a página.
+          </p>
+          <p>
+            Em <b>Backups</b>, defina uma senha, confira as pastas incluídas e
+            crie ou agende cópias completas dos dados e sites cadastrados.
+            Baixe uma cópia para outra máquina. Restaurar exige senha e revisão
+            dos destinos; arquivos adicionais do destino são preservados.
+          </p>
           <h2>Gerar uma documentação HTML</h2>
           <ol>
             <li>

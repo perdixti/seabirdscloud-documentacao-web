@@ -7,6 +7,7 @@ cffi==2.1.1
 click==8.5.0
 cryptography==50.0.2
 esprima==4.0.1
+pyspellchecker==0.9.1
 fastapi==0.162.0
 h11==0.16.0
 idna==3.20

@@ -1,5 +1,22 @@
 # Validação — fluxo de geração HTML
 
+## Executado na versão 3.0.0 — 29/10/2026
+
+- Suíte de 194 casos: Windows/Python 3.12 com **186 aprovados e 8 ignorados**; Linux/Python 3.12 e 3.13 com **193 aprovados e 1 ignorado** em cada execução. Os casos ignorados dependem da plataforma ou de configuração opcional. Há um aviso de depreciação do adaptador httpx do TestClient, sem falha nos testes.
+- Criação guiada, geração coordenada de HTML/fonte/card, reabertura portátil, mudança externa no HTML, atualização sem duplicar card e falha no catálogo sem gravação parcial.
+- Lixeira/restauração de HTML, fonte e card juntos; exclusão definitiva da fonte e imagens exclusivas. Imagens com o mesmo nome em outras pastas não são confundidas. Casos legados continuam cobertos.
+- Verificação de referências locais, diferença de caixa, recursos ausentes, catálogo, páginas sem card e diagnóstico sem devolução de segredos. Nenhum link externo é consultado pela auditoria.
+- Backup completo com dados, segredos e sites; migração de caminhos; arquivos adicionais preservados; senha incorreta, caminhos inválidos, retenção de agendados, envio maior que o limite antigo da API e recuperação após falha simulada.
+- Fila persistida, operação duplicada, reinício, autenticação, confirmação para restauração e redação de segredos em erros de validação.
+- Revisor local: acentos, dicionário, pontuação, concordância simples, palavras ignoradas, proteção de código/URLs, offsets com emoji e limite de texto. API contextual testada somente com respostas simuladas, sem chamadas pagas.
+- DOM: sugestões/automático/desfazer/Ctrl+Z, resultado atrasado, segredo mascarado, assistente com campos preservados, geração acompanhável e 23 verificações do editor completo; regressões do seletor Linux, site, publicação e exclusão aprovadas.
+- Navegador contra servidor temporário com site sintético: seis correções aplicadas e desfeitas, comandos e imagens preservados, painel de backups e auditoria com zero erros no site de teste. Evidência visual entregue em studio-3-revisor.png.
+- Medição Linux: **274,3 MB de pico residente**, afinidade de uma CPU, limite de memória virtual de 450 MB, revisão de 49 mil caracteres, criação e restauração de backup com 32 MB de dados, 6,8 segundos no total. O VS Code Web é separado e não foi incluído. A medição não substitui um teste de carga no servidor final.
+
+Nenhum documento real foi transmitido a um provedor de IA; nenhum push ao GitHub ou deploy S3 foi realizado. A EC2 e o LXC reais não foram atualizados.
+
+## Histórico da versão 2.9.0
+
 Data: 28/10/2026. Versão 2.9.0: exclusão definitiva de uma documentação completa.
 
 ## Executado na versão 2.9.0

@@ -8,7 +8,7 @@ import sqlite3
 import tempfile
 import warnings
 from collections import deque
-from contextlib import closing
+from contextlib import asynccontextmanager, closing
 from pathlib import Path
 from typing import Annotated
 from urllib.parse import urlsplit
@@ -23,9 +23,11 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from . import __version__
+from .backups import ActivityGate
 from .config import Settings
 from .generator_api import generator_router
 from .models import DocumentInput
+from .operations import Operations
 from .paths import server_user
 from .renderer import ASSET_PATTERN, render_document
 from .storage import ConflictError, Store
@@ -42,6 +44,8 @@ class BodyLimit:
         self.app, self.limit = app, limit
 
     async def __call__(self, scope, receive, send):
+        if scope.get("path") == "/api/maintenance/backups/upload":
+            return await self.app(scope, receive, send)
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
         if scope["method"] in {"GET", "HEAD", "OPTIONS"}:
@@ -67,9 +71,23 @@ class BodyLimit:
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     store = Store(settings.data_dir, settings.history_limit)
+    jobs = Operations(settings.data_dir)
+    gate = ActivityGate()
+
+    @asynccontextmanager
+    async def lifespan(app):
+        app.state.management.backups.schedule(jobs)
+        try:
+            yield
+        finally:
+            app.state.management.backups.stop.set()
+            jobs.close()
+
     assets = settings.data_dir / "assets"
     assets.mkdir(exist_ok=True)
-    app = FastAPI(title="SeaBirdsCloud", version=__version__, docs_url=None, redoc_url=None)
+    app = FastAPI(
+        title="SeaBirdsCloud", version=__version__, docs_url=None, redoc_url=None, lifespan=lifespan
+    )
     app.state.store = store
 
     @app.middleware("http")
@@ -78,7 +96,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             not settings.password
             and request.client
             and request.client.host != "testclient"
-            and request.url.hostname not in {"localhost", "127.0.0.1", "::1"}
+            and (
+                request.client.host not in {"127.0.0.1", "::1"}
+                or request.url.hostname not in {"localhost", "127.0.0.1", "::1"}
+            )
             and request.url.path != "/healthz"
         ):
             return JSONResponse({"detail": "Configure SEABIRDS_PASSWORD para acesso remoto."}, 403)
@@ -117,11 +138,40 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.add_middleware(BodyLimit)
 
+    @app.middleware("http")
+    async def maintenance_guard(request, call_next):
+        participates = (
+            request.url.path.startswith("/api/")
+            and "/api/operations" not in request.url.path
+            and request.url.path != "/api/maintenance/backups/upload"
+        )
+        if participates and not gate.enter():
+            return JSONResponse(
+                {
+                    "detail": "Backup ou restauração em andamento. Aguarde a conclusão no painel de operações."
+                },
+                503,
+            )
+        try:
+            return await call_next(request)
+        finally:
+            if participates:
+                gate.leave()
+
     @app.exception_handler(RequestValidationError)
     async def invalid_payload(request, exc):
         if request.url.path == "/api/generator/github/settings":
             return JSONResponse(
                 {"detail": "Configuração inválida. Confira nome, e-mail e a operação do token."},
+                422,
+            )
+        if request.url.path.endswith(
+            ("/text-review/settings", "/backups/settings")
+        ) or request.url.path.endswith("/operations"):
+            return JSONResponse(
+                {
+                    "detail": "Campos inválidos. Confira o formulário; segredos não são exibidos nas mensagens."
+                },
                 422,
             )
         return await request_validation_exception_handler(request, exc)
@@ -304,6 +354,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             headers={"Content-Disposition": 'attachment; filename="arquivos-processados.zip"'},
         )
 
-    app.include_router(generator_router(settings))
+    generator = generator_router(settings, store, jobs, gate)
+    app.state.management = generator.management
+    app.include_router(generator)
+    from .management import management_router
+
+    app.include_router(management_router(generator.management))
     app.mount("/static", StaticFiles(directory=PACKAGE / "static"), name="static")
     return app

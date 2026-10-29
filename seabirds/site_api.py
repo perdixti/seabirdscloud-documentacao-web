@@ -80,9 +80,9 @@ class LocalEditorInput(SiteInput):
     port: int = Field(default=8765, ge=1024, le=65535)
 
 
-def site_router(settings, files, filesystem_access, publisher=None):
+def site_router(settings, files, filesystem_access, publisher=None, workspace=None):
     router = APIRouter(prefix="/site")
-    workspace = SiteWorkspace(
+    workspace = workspace or SiteWorkspace(
         settings.data_dir, files, publisher=publisher, managed_editor_url=settings.editor_url
     )
 

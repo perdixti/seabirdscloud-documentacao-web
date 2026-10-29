@@ -39,7 +39,13 @@ export class GitHubPublication {
     }
   }
   configure(directory = this.repository(), afterSave, onBack) {
-    return openGitHubSettings({api: this.api, modal: this.modal, directory, afterSave, onBack});
+    return openGitHubSettings({
+      api: this.api,
+      modal: this.modal,
+      directory,
+      afterSave,
+      onBack,
+    });
   }
   open(directory = this.repository()) {
     this.mode = "document";
@@ -52,10 +58,15 @@ export class GitHubPublication {
     settings.textContent = "Configurar GitHub";
     settings.id = "github-open-settings";
     $("#github-review").after(settings);
-    settings.onclick = () => this.busy(settings, async () => {
-      const root = $("#github-directory").value.trim();
-      return this.configure(root, () => this.open(root), () => this.open(root));
-    });
+    settings.onclick = () =>
+      this.busy(settings, async () => {
+        const root = $("#github-directory").value.trim();
+        return this.configure(
+          root,
+          () => this.open(root),
+          () => this.open(root),
+        );
+      });
     $("#github-choose").onclick = () =>
       this.busy($("#github-choose"), async () => {
         const input = $("#github-directory");
@@ -99,7 +110,7 @@ export class GitHubPublication {
   renderReview(review, commitMessage) {
     this.modal(
       "Revisar publicação na main",
-      '<div class="github-repository"><div><span class="eyebrow">REPOSITÓRIO</span><strong id="github-repository-name"></strong><small id="github-author"></small></div><span class="github-branch">main</span></div><p class="field-hint">Raiz do site (index.html)</p><p id="github-root" class="image-path"></p><p id="github-scope" class="field-hint"></p><div id="github-notice" class="github-notice" hidden></div><div id="github-last"></div><p>Selecione os HTML, imagens e o catálogo que entrarão neste commit. As remoções selecionadas também serão enviadas.</p><div id="github-files" class="github-files"></div><div class="github-selection" id="github-selection"></div><label>Mensagem do commit<input id="github-message" maxlength="500"></label><p class="field-hint">O envio à main inicia a pipeline do repositório.</p><div class="modal-actions"><button id="github-publish" class="primary">Fazer commit e publicar na main</button><button id="github-rescan">Revisar novamente</button></div>',
+      '<div class="github-repository"><div><span class="eyebrow">REPOSITÓRIO</span><strong id="github-repository-name"></strong><small id="github-author"></small></div><span class="github-branch">main</span></div><p class="field-hint">Raiz do site (index.html)</p><p id="github-root" class="image-path"></p><p id="github-scope" class="field-hint"></p><div id="github-notice" class="github-notice" hidden></div><div id="github-last"></div><p>Selecione os HTML, imagens, fontes e o catálogo que entrarão neste commit. As remoções selecionadas também serão enviadas.</p><div id="github-files" class="github-files"></div><div class="github-selection" id="github-selection"></div><label>Mensagem do commit<input id="github-message" maxlength="500"></label><p class="field-hint">O envio à main inicia a pipeline do repositório.</p><div class="modal-actions"><button id="github-publish" class="primary">Fazer commit e publicar na main</button><button id="github-rescan">Revisar novamente</button></div>',
     );
     $("#github-repository-name").textContent = review.repository;
     $("#github-root").textContent = review.site_root || review.root;
@@ -109,14 +120,16 @@ export class GitHubPublication {
         : "") +
       (review.site_only
         ? "Revise as alterações locais do site, incluindo as páginas removidas."
-        : "Busca recursiva em todas as subpastas. O HTML gerado, suas imagens e o catálogo alterado já estão selecionados.");
+        : "Busca recursiva em todas as subpastas. O HTML gerado, suas imagens, fonte e o catálogo alterado já estão selecionados.");
     $("#github-author").textContent =
       review.author.name && review.author.email
         ? `Autor: ${review.author.name} <${review.author.email}>`
         : "Informe nome e e-mail em Configurar autor e GitHub para habilitar a publicação.";
-    $("#github-message").value = commitMessage ?? (review.site_only
-      ? "docs: atualiza páginas do site"
-      : "docs: atualiza " + this.data().title);
+    $("#github-message").value =
+      commitMessage ??
+      (review.site_only
+        ? "docs: atualiza páginas do site"
+        : "docs: atualiza " + this.data().title);
     const aligned = !review.ahead && !review.behind;
     if (!aligned) {
       const notice = $("#github-notice");
@@ -163,13 +176,59 @@ export class GitHubPublication {
       };
       $("#github-last").append(last);
     }
+    let validationAcknowledged = !review.validation?.errors;
     const checks = [];
     const updateSelection = () => {
       const count = checks.filter((input) => input.checked).length;
       $("#github-selection").textContent = count + " arquivo(s) selecionado(s)";
       $("#github-publish").disabled =
-        !count || !aligned || !review.author.name || !review.author.email;
+        !count ||
+        !aligned ||
+        !review.author.name ||
+        !review.author.email ||
+        !validationAcknowledged;
     };
+    if (review.validation) {
+      const box = document.createElement("details"),
+        summary = document.createElement("summary"),
+        list = document.createElement("ul");
+      box.className = "github-notice";
+      summary.textContent =
+        "Verificação local: " +
+        review.validation.errors +
+        " erro(s), " +
+        review.validation.warnings +
+        " aviso(s)";
+      for (const issue of review.validation.issues.slice(0, 100)) {
+        const item = document.createElement("li");
+        item.textContent =
+          issue.path +
+          " · " +
+          issue.message +
+          (issue.reference ? " → " + issue.reference : "");
+        list.append(item);
+      }
+      box.append(summary, list);
+      $("#github-files").before(box);
+      if (review.validation.errors) {
+        const label = document.createElement("label"),
+          ack = document.createElement("input");
+        label.className = "inline-check";
+        ack.type = "checkbox";
+        ack.id = "github-validation-ack";
+        label.append(
+          ack,
+          document.createTextNode(
+            "Conferi os problemas apontados e quero publicar os arquivos selecionados.",
+          ),
+        );
+        $("#github-files").before(label);
+        ack.onchange = () => {
+          validationAcknowledged = ack.checked;
+          updateSelection();
+        };
+      }
+    }
     for (const file of review.files) {
       const row = document.createElement("article");
       row.className = "github-file";
@@ -196,21 +255,42 @@ export class GitHubPublication {
     }
     if (!review.files.length)
       $("#github-files").textContent =
-        "Nenhum HTML, imagem ou catálogo com alterações para publicar.";
+        "Nenhum HTML, imagem, fonte ou catálogo com alterações para publicar.";
     updateSelection();
     const configure = document.createElement("button");
     configure.id = "github-configure";
-    configure.textContent = review.author.name && review.author.email ? "Configurar GitHub" : "Configurar autor e GitHub";
+    configure.textContent =
+      review.author.name && review.author.email
+        ? "Configurar GitHub"
+        : "Configurar autor e GitHub";
     configure.className = "quiet-button";
     $("#github-author").after(configure);
-    configure.onclick = () => this.busy(configure, async () => {
-      const selected = new Set(checks.filter(input => input.checked).map(input => input.value));
-      const snapshot = {...review, files: review.files.map(file => ({...file, selected: selected.has(file.path)}))};
-      const message = $("#github-message").value;
-      return this.configure(review.root,
-        settings => this.renderReview({...snapshot, author: settings.repository_author || snapshot.author}, message),
-        () => this.renderReview(snapshot, message));
-    });
+    configure.onclick = () =>
+      this.busy(configure, async () => {
+        const selected = new Set(
+          checks.filter((input) => input.checked).map((input) => input.value),
+        );
+        const snapshot = {
+          ...review,
+          files: review.files.map((file) => ({
+            ...file,
+            selected: selected.has(file.path),
+          })),
+        };
+        const message = $("#github-message").value;
+        return this.configure(
+          review.root,
+          (settings) =>
+            this.renderReview(
+              {
+                ...snapshot,
+                author: settings.repository_author || snapshot.author,
+              },
+              message,
+            ),
+          () => this.renderReview(snapshot, message),
+        );
+      });
     $("#github-rescan").onclick = () =>
       this.busy($("#github-rescan"), async () => {
         await this.refreshReview();

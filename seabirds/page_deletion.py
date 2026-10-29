@@ -162,6 +162,10 @@ class PageDeletion:
         candidates = self.references(root, target.parent, self.text(raw))
         catalog, covers = self.catalog_plan(root, target)
         candidates |= covers
+        for card in entry.get("cards", []):
+            cover = self.image(root, (root / entry["catalog_page"]).parent, card["image"])
+            if cover:
+                candidates.add(cover)
         referenced, versions = set(), {}
         total = 0
 
@@ -176,10 +180,37 @@ class PageDeletion:
             original = path.read_bytes()
             versions[path] = hashlib.sha256(original).hexdigest()
             text = self.text(original if content is None else content)
-            referenced.update(self.references(root, base, text))
+            portable = None
+            if path.name.endswith(".documentacao.json"):
+                try:
+                    portable = json.loads(text)
+                except ValueError:
+                    raise ValueError(
+                        "A fonte associada contém JSON inválido: " + str(path)
+                    ) from None
+            if portable and portable.get("format") == "seabirds-document-1":
+                from markdown_it import MarkdownIt
+
+                document = portable["document"]
+                output = self.workspace.catalog_editor.site_path(root, portable["output"])
+                referenced.update(self.references(root, output.parent, document["template"]))
+                for token in MarkdownIt().parse(document["markdown"]):
+                    for child in token.children or []:
+                        if child.type == "image":
+                            image = self.image(root, output.parent, child.attrGet("src"))
+                            if image:
+                                referenced.add(image)
+                for image in document["generation"].get("images", []):
+                    image = self.image(root, root, image["path"])
+                    if image:
+                        referenced.add(image)
+            else:
+                referenced.update(self.references(root, base, text))
             # Scripts podem montar URLs a partir de fragmentos. Na dúvida, mantém a imagem.
-            if path.suffix.lower() in {".js", ".json", ".md"} and not (
-                catalog and path == catalog["path"]
+            if (
+                not portable
+                and path.suffix.lower() in {".js", ".json", ".md"}
+                and not (catalog and path == catalog["path"])
             ):
                 referenced.update(image for image in candidates if image.name in text)
 
@@ -217,6 +248,10 @@ class PageDeletion:
         for other in self.workspace.state["trash"]:
             if other["root"] == str(root) and other["id"] != identifier:
                 scan(self.workspace.trash_file(other), (root / other["relative"]).parent)
+                for card in other.get("cards", []):
+                    cover = self.image(root, (root / other["catalog_page"]).parent, card["image"])
+                    if cover:
+                        referenced.add(cover)
         if catalog and catalog["path"] not in versions:
             raise ValueError("Não foi possível conferir o arquivo do catálogo.")
         images = sorted(path for path in candidates - referenced if path.is_file())
@@ -225,12 +260,19 @@ class PageDeletion:
         for path in images:
             versions[path] = self.workspace.digest(path)
         versions[source] = entry["digest"]
+        from .page_trash import PageTrash
+
+        companions = PageTrash(self.workspace).companions(root, entry)
+        for _, copy, expected in companions:
+            versions[copy] = expected
         public = {
             "id": identifier,
             "root": str(root),
             "path": entry["relative"],
             "catalog_path": catalog["relative"] if catalog else "",
             "catalog_entries": catalog["count"] if catalog else 0,
+            "catalog_already_removed": len(entry.get("cards", [])),
+            "sources": [target.relative_to(root).as_posix() for target, _, _ in companions],
             "images": [path.relative_to(root).as_posix() for path in images],
             "preserved_images": sorted(
                 path.relative_to(root).as_posix() for path in candidates & referenced
@@ -248,6 +290,7 @@ class PageDeletion:
             "images": images,
             "catalog": catalog,
             "source": source,
+            "companions": [copy for _, copy, _ in companions],
             "entry": entry,
         }
 
@@ -267,7 +310,9 @@ class PageDeletion:
         with store.lock:
             old_images = deepcopy(store.entries)
             try:
-                for index, path in enumerate([*plan["images"], plan["source"]]):
+                for index, path in enumerate(
+                    [*plan["images"], plan["source"], *plan["companions"]]
+                ):
                     copy = directory / str(index)
                     shutil.copy2(path, copy)
                     if self.workspace.digest(copy) != plan["versions"][path]:

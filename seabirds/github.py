@@ -18,6 +18,7 @@ from uuid import uuid4
 
 from .filesystem import TemplateAssets, atomic_write, local_path, preview_asset_path, read_utf8
 from .github_settings import GitHubSettings
+from .operations import progress
 from .project_catalog import CATALOG_FILENAME, IMAGE_EXTENSIONS, CatalogSource, ProjectCatalog
 
 PUBLISH_EXTENSIONS = {
@@ -99,6 +100,18 @@ class GitHubPublisher:
         ]
 
     def git(self, root, *args, data=None, check=True, timeout=45, identity=None):
+        stages = {
+            "fetch": ("Consultando a main remota", 20),
+            "clone": ("Baixando o repositório", 20),
+            "status": ("Listando alterações", 40),
+            "add": ("Preparando os arquivos selecionados", 55),
+            "commit": ("Criando o commit local", 70),
+            "push": ("Enviando o commit ao GitHub", 85),
+            "merge": ("Atualizando a main local", 60),
+            "ls-remote": ("Testando acesso ao repositório", 30),
+        }
+        if args and args[0] in stages:
+            progress(*stages[args[0]])
         token = self.token
         command = ["git", "-c", "core.quotepath=false"]
         if token:
@@ -243,6 +256,7 @@ class GitHubPublisher:
         output = local_path(document.generation.output_path)
         paths = [
             output,
+            output.with_suffix(".documentacao.json"),
             *(local_path(image.path) for image in document.generation.images if image.path),
         ]
         if output.is_file():
@@ -315,7 +329,11 @@ class GitHubPublisher:
                 part in {"..", ".git", ".github"} or part.startswith(".") for part in path.parts
             )
             and not any(ord(char) < 32 for char in name)
-            and (path.suffix.lower() in PUBLISH_EXTENSIONS or path.name == CATALOG_FILENAME)
+            and (
+                path.suffix.lower() in PUBLISH_EXTENSIONS
+                or path.name == CATALOG_FILENAME
+                or path.name.endswith(".documentacao.json")
+            )
         )
 
     def changes(self, root, site=None):
@@ -362,7 +380,11 @@ class GitHubPublisher:
             else None
         )
         diff = "Imagem binária: confira o arquivo na pasta do site."
-        if path.suffix.lower() in {".html", ".htm", ".svg"} or path.name == CATALOG_FILENAME:
+        if (
+            path.suffix.lower() in {".html", ".htm", ".svg"}
+            or path.name == CATALOG_FILENAME
+            or path.name.endswith(".documentacao.json")
+        ):
             old = self.git(root, "cat-file", "blob", f"{head}:{name}", check=False).stdout
             before = old.decode("utf-8", errors="replace").splitlines(True)
             after = (raw or b"").decode("utf-8", errors="replace").splitlines(True)
@@ -447,7 +469,9 @@ class GitHubPublisher:
                 "result": None,
             }
             author = self.author(root)
+            validation = self.site_audit(str(site)) if hasattr(self, "site_audit") else None
             return {
+                "validation": validation,
                 "token": token,
                 "root": str(root),
                 "site_root": str(site),

@@ -10,8 +10,10 @@ export class SiteManager {
     this.checked = new Set();
     this.editor = null;
     this.loading = 0;
-    $("#site-github-settings").onclick = () => this.guard(() => this.configureGitHub($("#site-directory").value.trim()));
-    $("#site-catalog").onclick = () => this.guard(() => this.openCatalog(this.requireRoot()));
+    $("#site-github-settings").onclick = () =>
+      this.guard(() => this.configureGitHub($("#site-directory").value.trim()));
+    $("#site-catalog").onclick = () =>
+      this.guard(() => this.openCatalog(this.requireRoot()));
     $("#site-directory").oninput = () => {
       this.loading++;
       this.root = "";
@@ -303,6 +305,10 @@ export class SiteManager {
       button("edit", "Editar HTML " + page.path, () =>
         this.editPage(page.path),
       );
+      if (page.has_source)
+        button("edit", "Editar documentação " + page.path, () =>
+          this.openSource(this.requireRoot(), page.path),
+        );
       button("external", "Visualizar " + page.path, () =>
         this.preview(page.path),
       );
@@ -395,7 +401,7 @@ export class SiteManager {
     const root = this.requireRoot();
     this.modal(
       "Excluir páginas do site",
-      '<p>As páginas selecionadas serão movidas para uma lixeira recuperável. Para retirar também os cadastros do catálogo e as imagens exclusivas, use Excluir definitivamente na lixeira. Depois, revise a publicação das remoções.</p><ul id="site-trash-confirm-list" class="image-path"></ul><div class="modal-actions"><button id="site-confirm-trash" class="danger-button">Enviar páginas à lixeira</button><button id="site-cancel-trash">Cancelar</button></div>',
+      '<p>O HTML, sua fonte associada e os cards serão retirados juntos do site e poderão ser restaurados pela lixeira. As imagens permanecem disponíveis até a exclusão definitiva. Depois, revise a publicação das remoções.</p><ul id="site-trash-confirm-list" class="image-path"></ul><div class="modal-actions"><button id="site-confirm-trash" class="danger-button">Enviar páginas à lixeira</button><button id="site-cancel-trash">Cancelar</button></div>',
     );
     for (const page of pages) {
       const item = document.createElement("li");
@@ -449,8 +455,12 @@ export class SiteManager {
       const remove = document.createElement("button");
       remove.textContent = "Excluir definitivamente";
       remove.className = "danger-button";
-      remove.setAttribute("aria-label", "Excluir definitivamente " + page.relative);
-      remove.onclick = () => this.busy(remove, () => this.confirmDeletePage(page));
+      remove.setAttribute(
+        "aria-label",
+        "Excluir definitivamente " + page.relative,
+      );
+      remove.onclick = () =>
+        this.busy(remove, () => this.confirmDeletePage(page));
       row.append(name, restore, remove);
       $("#site-trash-list").append(row);
     }
@@ -459,7 +469,9 @@ export class SiteManager {
   }
   async confirmDeletePage(page) {
     const root = this.requireRoot();
-    const plan = await this.post("pages/trash/" + page.id + "/delete-preview", { root });
+    const plan = await this.post("pages/trash/" + page.id + "/delete-preview", {
+      root,
+    });
     this.modal(
       "Excluir documentação definitivamente",
       '<p>Esta ação não pode ser desfeita pela lixeira. Confira os itens abaixo.</p><p id="site-delete-page-path" class="image-path"></p><p id="site-delete-catalog-count"></p><details open><summary id="site-delete-image-count"></summary><ul id="site-delete-images" class="image-path"></ul></details><details id="site-delete-preserved"><summary>Imagens compartilhadas que serão mantidas</summary><ul id="site-delete-preserved-list" class="image-path"></ul></details><label class="inline-check"><input type="checkbox" id="site-delete-ack">Entendo que o HTML e as imagens listadas serão excluídos definitivamente.</label><p class="field-hint">A alteração é local. O GitHub e o S3 serão atualizados depois que você revisar e publicar as remoções.</p><div class="modal-actions"><button id="site-delete-confirm" class="danger-button" disabled>Excluir definitivamente</button><button id="site-delete-cancel">Voltar à lixeira</button></div>',
@@ -467,9 +479,16 @@ export class SiteManager {
     $("#site-delete-page-path").textContent = plan.path;
     $("#site-delete-catalog-count").textContent = plan.catalog_entries
       ? `${plan.catalog_entries} cadastro(s) serão removidos de ${plan.catalog_path}.`
-      : "Esta página não tem cadastro no catálogo configurado.";
-    $("#site-delete-image-count").textContent = `${plan.images.length} imagem(ns) exclusiva(s) serão excluídas`;
-    for (const [selector, paths] of [["#site-delete-images", plan.images], ["#site-delete-preserved-list", plan.preserved_images]]) {
+      : plan.catalog_already_removed
+        ? plan.catalog_already_removed +
+          " cadastro(s) já foram retirados ao enviar à lixeira."
+        : "Esta página não tem cadastro no catálogo configurado.";
+    $("#site-delete-image-count").textContent =
+      `${plan.images.length} imagem(ns) exclusiva(s) serão excluídas`;
+    for (const [selector, paths] of [
+      ["#site-delete-images", plan.images],
+      ["#site-delete-preserved-list", plan.preserved_images],
+    ]) {
       for (const path of paths) {
         const item = document.createElement("li");
         item.textContent = path;
@@ -484,18 +503,24 @@ export class SiteManager {
     const review = document.createElement("button");
     review.textContent = "Revisar novamente";
     review.id = "site-delete-review";
-    review.onclick = () => this.busy(review, () => this.confirmDeletePage(page));
+    review.onclick = () =>
+      this.busy(review, () => this.confirmDeletePage(page));
     $("#site-delete-confirm").parentElement.append(review);
     $("#site-delete-confirm").onclick = () => {
       if (!$("#site-delete-ack").checked) return;
       return this.busy($("#site-delete-confirm"), async () => {
-        await this.post("pages/trash/" + page.id + "/delete", { root, token: plan.token, confirm: true });
+        await this.post("pages/trash/" + page.id + "/delete", {
+          root,
+          token: plan.token,
+          confirm: true,
+        });
         await this.load();
         this.modal(
           "Documentação excluída",
           '<p>O HTML foi retirado da lixeira, os cadastros foram removidos e as imagens exclusivas foram excluídas. Revise as alterações para publicá-las.</p><div class="modal-actions"><button id="site-publish-deletions" class="primary">Revisar publicação das remoções</button><button id="site-delete-finish">Voltar à lixeira</button></div>',
         );
-        $("#site-publish-deletions").onclick = () => this.guard(() => this.publishSite(root));
+        $("#site-publish-deletions").onclick = () =>
+          this.guard(() => this.publishSite(root));
         $("#site-delete-finish").onclick = () => this.showTrash();
       });
     };
@@ -523,10 +548,15 @@ export class SiteManager {
     setup.textContent = "Configurar GitHub";
     setup.id = "site-clone-settings";
     $("#site-confirm-clone").after(setup);
-    setup.onclick = () => this.guard(async () => {
-      const current = data();
-      return this.configureGitHub("", () => this.cloneForm(current), () => this.cloneForm(current));
-    });
+    setup.onclick = () =>
+      this.guard(async () => {
+        const current = data();
+        return this.configureGitHub(
+          "",
+          () => this.cloneForm(current),
+          () => this.cloneForm(current),
+        );
+      });
     $("#site-clone-parent").onclick = () =>
       this.guard(async () => {
         const current = data();
@@ -584,12 +614,13 @@ export class SiteManager {
         $("#modal").close();
         this.toast("Conexão com o editor salva.");
       });
-    $("#site-native-editor").hidden = !settings.local_editor_available || !!settings.editor_managed;
+    $("#site-native-editor").hidden =
+      !settings.local_editor_available || !!settings.editor_managed;
     $("#site-native-note").textContent = settings.editor_managed
       ? "Conexão configurada no servidor. Use Editor do site para abrir a pasta selecionada no navegador."
       : settings.local_editor_available
-      ? "O VS Code instalado pode servir um editor Web local. A primeira execução pede a aceitação dos termos do servidor."
-      : "Informe o endereço do editor hospedado no servidor. Ele abrirá no navegador e salvará os arquivos na mesma pasta do site.";
+        ? "O VS Code instalado pode servir um editor Web local. A primeira execução pede a aceitação dos termos do servidor."
+        : "Informe o endereço do editor hospedado no servidor. Ele abrirá no navegador e salvará os arquivos na mesma pasta do site.";
     $("#site-native-editor").onclick = () => this.nativeEditorForm();
   }
   nativeEditorForm() {

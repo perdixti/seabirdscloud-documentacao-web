@@ -2,6 +2,8 @@
 
 Refatoração do gerador original, preservando o fluxo **template HTML → conteúdo Markdown → arquivo .html**, com imagens coladas em uma pasta escolhida. A interface roda no navegador e o processamento continua em Python. O histórico guarda rascunhos; o resultado principal é um arquivo HTML no seu site.
 
+**Versão 3.0.0:** criação guiada, fonte Markdown portátil ao lado do HTML, validação de referências, lixeira integrada ao catálogo, operações acompanháveis, diagnóstico, backups completos e revisor local de português. Veja [Novidades e atualização](docs/STUDIO-3.md), [Revisor](docs/REVISOR.md) e [Backups](docs/BACKUPS.md).
+
 ## Usar no Windows
 
 Na pasta da aplicação, abra **`start.cmd`** e acesse **http://127.0.0.1:8000**. O ambiente Python já foi preparado na instalação local desta entrega. Para uma cópia nova, instale Python 3.12/3.13 e execute:
@@ -86,7 +88,7 @@ As configurações de caminhos são preservadas por projeto. O SQLite em `data/s
 
 Um rascunho local no navegador ajuda na recuperação se a conexão cair. Antes de sair com alterações pendentes, o navegador pede confirmação. Conflitos de gravação entre abas são detectados. Em caso de conflito, salve seu Markdown e reabra o projeto antes de continuar.
 
-Para uma cópia completa, pare a aplicação e copie `data/` e as pastas externas onde guardou os HTML, templates e imagens. As imagens e páginas são arquivos do seu site; não ficam obrigatoriamente dentro do diretório de dados. Para restaurar os rascunhos, aponte `SEABIRDS_DATA_DIR` para uma cópia do diretório de dados e reinicie.
+O botão **Backups** cria cópias completas protegidas por senha dos dados e sites cadastrados, com agendamento, download e restauração pelo navegador. Confira as pastas incluídas no painel. Consulte [Backups](docs/BACKUPS.md). Como alternativa, pare a aplicação e copie `data/` e as pastas externas onde guardou os HTML, templates e imagens. As imagens e páginas não ficam obrigatoriamente dentro do diretório de dados.
 
 ## Publicar no GitHub e executar o deploy no S3
 
@@ -133,7 +135,7 @@ Em **Site e repositórios → Configurar editor**, conecte um editor que execute
 
 No Windows, com VS Code instalado e disponível no PATH, use **Iniciar VS Code Web neste computador**. A interface apresenta os [termos do Visual Studio Code Server](https://aka.ms/vscode-server-license); só inicia após sua aceitação. O processo usa `127.0.0.1:8765`, autenticação por token e dados separados em `data/vscode-*`. A primeira execução pode baixar componentes do VS Code. A API de inicialização só aceita acesso pela própria máquina. O gerador exige VS Code 1.128.1 ou mais recente; mantenha-o atualizado. Fechar a aba do navegador mantém o processo em execução; reiniciar o computador o encerra, e o botão pode iniciá-lo novamente. Os testes desta entrega simularam a inicialização, sem aceitar os termos por você.
 
-No Debian/LXC ou na EC2, o editor pode ficar hospedado junto do gerador. Atualize para a versão 2.9.0 e execute `bash deploy/install-web.sh` no servidor. Depois, use **Site e repositórios → Editor do site**. O editor abre no mesmo endereço, em `/editor/`, acessando a pasta selecionada do servidor. Ele inicia automaticamente com o servidor e usa senha própria; o computador do usuário só precisa do navegador.
+No Debian/LXC ou na EC2, o editor pode ficar hospedado junto do gerador. Atualize para a versão 3.0.0 e execute `bash deploy/install-web.sh` no servidor. Depois, use **Site e repositórios → Editor do site**. O editor abre no mesmo endereço, em `/editor/`, acessando a pasta selecionada do servidor. Ele inicia automaticamente com o servidor e usa senha própria; o computador do usuário só precisa do navegador.
 
 O modo de desenvolvimento mantém HTTP e a porta pública 8000. O proxy encaminha o gerador para a porta interna 8001 e o editor para 8765, ambas em loopback. O link é relativo e também funciona no IP do LXC, sem fixar o DNS da EC2. A configuração de publicação Git continua sendo feita no gerador, com revisão antes do commit/push.
 

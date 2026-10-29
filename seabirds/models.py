@@ -30,13 +30,20 @@ class GenerationSettings(BaseModel):
     history_interval: int = Field(default=60, ge=1, le=86400)
     history_limit: int = Field(default=10, ge=1, le=1000)
     images: list[ImageAttachment] = Field(default_factory=list, max_length=1000)
+    catalog_category: str = Field(default="", max_length=100)
+    catalog_description: str = Field(default="", max_length=2000)
+    catalog_image: str = Field(default="", max_length=4096)
+    register_catalog: bool = False
+    save_source: bool = False
+    output_version: str = Field(default="", pattern=r"^(?:[a-f0-9]{64})?$")
+    review_mode: str = Field(default="suggest", pattern=r"^(off|suggest|auto|auto-all)$")
 
 
 class DocumentInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str = Field(default="Sem título", min_length=1, max_length=200)
     markdown: str = Field(default="", max_length=1_000_000)
-    template: str = Field(default="", max_length=250_000)
+    template: str = Field(default="", max_length=1_000_000)
     options: RenderOptions = Field(default_factory=RenderOptions)
     version: int = Field(default=0, ge=0)
     generation: GenerationSettings = Field(default_factory=GenerationSettings)

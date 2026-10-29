@@ -49,7 +49,7 @@ class DeleteImageInput(BaseModel):
     confirm: Literal[True]
 
 
-def generator_router(settings):
+def generator_router(settings, store=None, jobs=None, gate=None):
     router = APIRouter(prefix="/api/generator")
     files = ProjectFiles(settings.data_dir)
 
@@ -95,7 +95,7 @@ def generator_router(settings):
     @router.post("/generate")
     def generate(document: DocumentInput, request: Request):
         filesystem_access(request)
-        return files.generate(document)
+        return management.flow.generate(document)
 
     @router.post("/download")
     def download(document: DocumentInput, request: Request):
@@ -363,6 +363,14 @@ def generator_router(settings):
         return {"path": str(path)}
 
     publisher = GitHubPublisher(settings.data_dir)
+    from .management import Management
+    from .site_workspace import SiteWorkspace
+
+    workspace = SiteWorkspace(
+        settings.data_dir, files, publisher=publisher, managed_editor_url=settings.editor_url
+    )
+    management = Management(settings, workspace, store, jobs, gate, filesystem_access)
+    router.management = management
     router.include_router(github_router(settings, filesystem_access, publisher))
-    router.include_router(site_router(settings, files, filesystem_access, publisher))
+    router.include_router(site_router(settings, files, filesystem_access, publisher, workspace))
     return router

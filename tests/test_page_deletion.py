@@ -60,7 +60,7 @@ def test_purge_removes_catalog_html_exclusive_images_and_image_records_after_res
     workspace = SiteWorkspace(data, ProjectFiles(data))
     before = catalog.read_bytes()
     plan = workspace.preview_delete_page(str(root), identifier)
-    assert plan["catalog_entries"] == 1
+    assert plan["catalog_entries"] == 0 and plan["catalog_already_removed"] == 1
     assert plan["images"] == ["imagens/a/foto.png", "imagens/a/logo.png"]
     assert plan["preserved_images"] == ["imagens/shared.png"]
     assert catalog.read_bytes() == before and len(workspace.state["trash"]) == 1
@@ -142,7 +142,7 @@ def test_catalog_duplicates_are_all_removed_and_other_card_cover_kept(deletion):
     )
     identifier = trash(workspace, root)
     plan = workspace.preview_delete_page(str(root), identifier)
-    assert plan["catalog_entries"] == 2
+    assert plan["catalog_entries"] == 0 and plan["catalog_already_removed"] == 2
     assert "imagens/a/logo.png" in plan["preserved_images"]
     workspace.delete_page(str(root), identifier, plan["token"])
     assert len(CatalogSource(catalog.read_text()).entries) == 1
