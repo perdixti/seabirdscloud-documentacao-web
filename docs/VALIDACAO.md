@@ -1,5 +1,21 @@
 # Validação — fluxo de geração HTML
 
+Data: 28/10/2026. Versão 2.9.0: exclusão definitiva de uma documentação completa.
+
+## Executado na versão 2.9.0
+
+- Suíte de 170 casos: Windows/Python 3.12 com **162 aprovados e 8 ignorados**; Linux/Python 3.12 com **169 aprovados e 1 ignorado**.
+- Exclusão de páginas já na lixeira após reiniciar, remoção de todos os cadastros equivalentes no catálogo, capa e imagens exclusivas. Registros ativos das imagens removidas também saem do catálogo de imagens. Comentários, BOM/CRLF, outros cards e propriedades extras preservados.
+- Imagens compartilhadas por HTML, CSS, srcset, cards e outras páginas ainda na lixeira preservadas. Links base, URLs codificadas e arquivos legados CP1252/UTF-16 exercitados. Arquivos externos, imagens sem relação com a página e destinos de links simbólicos mantidos.
+- Revisão desatualizada, página recriada no mesmo caminho, arquivo de lixeira alterado, catálogo inválido, outra raiz e tentativa de sair da lixeira bloqueados. Falha simulada de gravação restaurou catálogo, imagens e HTML recuperável.
+- API exige autenticação, mesma origem, revisão válida e confirmação explícita. A integração Git publica as remoções de HTML/imagens e a edição do catálogo juntas somente em remoto bare local, com normalização CRLF habilitada.
+- DOM: nomes como texto, revisão antes da exclusão, confirmação obrigatória, cancelamento, erro sem fechar a revisão, atualização da lixeira e publicação somente por ação posterior. Regressão de Site e repositórios aprovada.
+- Navegador: novo botão na lixeira e revisão real contra servidor temporário Windows com arquivos sintéticos; lista de duas imagens exclusivas e logo compartilhado preservado. A exclusão definitiva foi executada pelos testes de API, sem excluir conteúdo real do usuário pela interface.
+
+Nenhum site real foi excluído, nenhum commit foi enviado ao GitHub e nenhum deploy no S3 foi disparado. O servidor EC2/LXC real não foi atualizado pelo agente.
+
+## Histórico da versão 2.8.0
+
 Data: 28/10/2026. Versão 2.8.0: catálogo das documentações pelo navegador.
 
 ## Executado na versão 2.8.0

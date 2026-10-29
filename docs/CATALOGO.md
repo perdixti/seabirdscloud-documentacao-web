@@ -1,6 +1,6 @@
 # Catálogo das documentações pelo navegador
 
-Na versão 2.8.0, o formulário gerencia os cards do `js/projetos-conteudo.js` do site. Ele mantém a variável `dadosCategorias`, as categorias, os comentários e o restante do JavaScript existente. A leitura analisa a estrutura do arquivo sem executar seus comandos.
+A partir da versão 2.8.0, o formulário gerencia os cards do `js/projetos-conteudo.js` do site. Ele mantém a variável `dadosCategorias`, as categorias, os comentários e o restante do JavaScript existente. A leitura analisa a estrutura do arquivo sem executar seus comandos.
 
 ## Cadastrar a documentação que acabou de gerar
 
@@ -22,6 +22,8 @@ O catálogo não aceita dois cadastros apontando para a mesma página HTML. Para
 **Remover do catálogo** pede confirmação e retira apenas o card; o HTML e suas imagens continuam no site. **Desfazer última alteração** restaura a versão anterior do arquivo, inclusive depois de reiniciar a aplicação. Se o arquivo foi alterado externamente, é necessário recarregar; a aplicação não sobrescreve uma edição posterior.
 
 Cada gravação e restauração cria uma cópia anterior em `data/file-backups/` (ou `/var/lib/seabirds/file-backups/` na instalação Linux). O formulário pede confirmação antes de descartar campos editados ainda não salvos.
+
+Para excluir também o HTML e as imagens exclusivas da documentação, use **Lixeira de páginas → Excluir definitivamente**. Veja [Exclusão completa](LIXEIRA-PAGINAS.md).
 
 ## Caminhos e formato
 
@@ -62,7 +64,7 @@ Revise os arquivos e confirme o commit/push na main. A pipeline existente contin
 
 ## Atualizar o servidor
 
-Extraia o pacote 2.8.0 numa pasta nova no servidor. Na pasta `SeaBirdsCloud` extraída, como root, execute:
+Extraia o pacote 2.9.0 numa pasta nova no servidor. Na pasta `SeaBirdsCloud` extraída, como root, execute:
 
 ```bash
 bash deploy/update-app.sh

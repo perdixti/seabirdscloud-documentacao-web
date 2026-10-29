@@ -395,7 +395,7 @@ export class SiteManager {
     const root = this.requireRoot();
     this.modal(
       "Excluir páginas do site",
-      '<p>As páginas selecionadas serão movidas para uma lixeira recuperável. Depois, revise a publicação das remoções para enviá-las ao GitHub e ao S3.</p><ul id="site-trash-confirm-list" class="image-path"></ul><div class="modal-actions"><button id="site-confirm-trash" class="danger-button">Enviar páginas à lixeira</button><button id="site-cancel-trash">Cancelar</button></div>',
+      '<p>As páginas selecionadas serão movidas para uma lixeira recuperável. Para retirar também os cadastros do catálogo e as imagens exclusivas, use Excluir definitivamente na lixeira. Depois, revise a publicação das remoções.</p><ul id="site-trash-confirm-list" class="image-path"></ul><div class="modal-actions"><button id="site-confirm-trash" class="danger-button">Enviar páginas à lixeira</button><button id="site-cancel-trash">Cancelar</button></div>',
     );
     for (const page of pages) {
       const item = document.createElement("li");
@@ -429,7 +429,7 @@ export class SiteManager {
   showTrash() {
     this.modal(
       "Lixeira de páginas",
-      '<p>Restaure as páginas para o caminho original. Arquivos existentes serão preservados.</p><div id="site-trash-list" class="asset-list"></div>',
+      '<p>Restaure uma página ou exclua definitivamente o HTML, seu cadastro no catálogo e as imagens exclusivas. Imagens compartilhadas são preservadas. A exclusão será revisada antes da confirmação.</p><div id="site-trash-list" class="asset-list"></div>',
     );
     for (const page of this.trash) {
       const row = document.createElement("article");
@@ -446,11 +446,59 @@ export class SiteManager {
           await this.load();
           this.showTrash();
         });
-      row.append(name, restore);
+      const remove = document.createElement("button");
+      remove.textContent = "Excluir definitivamente";
+      remove.className = "danger-button";
+      remove.setAttribute("aria-label", "Excluir definitivamente " + page.relative);
+      remove.onclick = () => this.busy(remove, () => this.confirmDeletePage(page));
+      row.append(name, restore, remove);
       $("#site-trash-list").append(row);
     }
     if (!this.trash.length)
       $("#site-trash-list").textContent = "A lixeira de páginas está vazia.";
+  }
+  async confirmDeletePage(page) {
+    const root = this.requireRoot();
+    const plan = await this.post("pages/trash/" + page.id + "/delete-preview", { root });
+    this.modal(
+      "Excluir documentação definitivamente",
+      '<p>Esta ação não pode ser desfeita pela lixeira. Confira os itens abaixo.</p><p id="site-delete-page-path" class="image-path"></p><p id="site-delete-catalog-count"></p><details open><summary id="site-delete-image-count"></summary><ul id="site-delete-images" class="image-path"></ul></details><details id="site-delete-preserved"><summary>Imagens compartilhadas que serão mantidas</summary><ul id="site-delete-preserved-list" class="image-path"></ul></details><label class="inline-check"><input type="checkbox" id="site-delete-ack">Entendo que o HTML e as imagens listadas serão excluídos definitivamente.</label><p class="field-hint">A alteração é local. O GitHub e o S3 serão atualizados depois que você revisar e publicar as remoções.</p><div class="modal-actions"><button id="site-delete-confirm" class="danger-button" disabled>Excluir definitivamente</button><button id="site-delete-cancel">Voltar à lixeira</button></div>',
+    );
+    $("#site-delete-page-path").textContent = plan.path;
+    $("#site-delete-catalog-count").textContent = plan.catalog_entries
+      ? `${plan.catalog_entries} cadastro(s) serão removidos de ${plan.catalog_path}.`
+      : "Esta página não tem cadastro no catálogo configurado.";
+    $("#site-delete-image-count").textContent = `${plan.images.length} imagem(ns) exclusiva(s) serão excluídas`;
+    for (const [selector, paths] of [["#site-delete-images", plan.images], ["#site-delete-preserved-list", plan.preserved_images]]) {
+      for (const path of paths) {
+        const item = document.createElement("li");
+        item.textContent = path;
+        $(selector).append(item);
+      }
+    }
+    $("#site-delete-preserved").hidden = !plan.preserved_images.length;
+    $("#site-delete-ack").onchange = () => {
+      $("#site-delete-confirm").disabled = !$("#site-delete-ack").checked;
+    };
+    $("#site-delete-cancel").onclick = () => this.showTrash();
+    const review = document.createElement("button");
+    review.textContent = "Revisar novamente";
+    review.id = "site-delete-review";
+    review.onclick = () => this.busy(review, () => this.confirmDeletePage(page));
+    $("#site-delete-confirm").parentElement.append(review);
+    $("#site-delete-confirm").onclick = () => {
+      if (!$("#site-delete-ack").checked) return;
+      return this.busy($("#site-delete-confirm"), async () => {
+        await this.post("pages/trash/" + page.id + "/delete", { root, token: plan.token, confirm: true });
+        await this.load();
+        this.modal(
+          "Documentação excluída",
+          '<p>O HTML foi retirado da lixeira, os cadastros foram removidos e as imagens exclusivas foram excluídas. Revise as alterações para publicá-las.</p><div class="modal-actions"><button id="site-publish-deletions" class="primary">Revisar publicação das remoções</button><button id="site-delete-finish">Voltar à lixeira</button></div>',
+        );
+        $("#site-publish-deletions").onclick = () => this.guard(() => this.publishSite(root));
+        $("#site-delete-finish").onclick = () => this.showTrash();
+      });
+    };
   }
   cloneForm(values = {}) {
     this.modal(

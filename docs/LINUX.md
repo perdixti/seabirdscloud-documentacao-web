@@ -1,22 +1,22 @@
-# Linux e LXC — versão 2.8.0
+# Linux e LXC — versão 2.9.0
 
 A aplicação usa a mesma interface, gerador, template e catálogo de imagens no Windows e no Linux. Os caminhos pertencem à máquina do servidor. No LXC, um caminho como `/opt/Meu site` deve existir e estar acessível ao usuário `seabirds`.
 
 ## Atualizar o LXC existente
 
-Copie `SeaBirdsCloud-LXC-Debian13-2.8.0.zip` para `/root` do LXC. Como root, dentro do container:
+Copie `SeaBirdsCloud-LXC-Debian13-2.9.0.zip` para `/root` do LXC. Como root, dentro do container:
 
 ```bash
 apt-get update
 apt-get install -y unzip
-mkdir -p /root/seabirds-update-2.8.0
-unzip SeaBirdsCloud-LXC-Debian13-2.8.0.zip -d /root/seabirds-update-2.8.0
-cd /root/seabirds-update-2.8.0/SeaBirdsCloud
+mkdir -p /root/seabirds-update-2.9.0
+unzip SeaBirdsCloud-LXC-Debian13-2.9.0.zip -d /root/seabirds-update-2.9.0
+cd /root/seabirds-update-2.9.0/SeaBirdsCloud
 sha256sum -c MANIFEST.sha256
 bash deploy/update-app.sh
 ```
 
-O instalador preserva `/var/lib/seabirds` (banco, rascunhos, históricos e lixeiras), `/srv/seabirds` (sites) e a configuração já existente em `/etc/seabirds/seabirds.env`. Faça backup desses caminhos antes da atualização. As credenciais antigas continuam funcionando. Na versão 2.8.0, autor e token também podem ser gerenciados em **Configurar GitHub**, sem reiniciar o serviço; veja [GitHub Web](GITHUB-WEB.md).
+O instalador preserva `/var/lib/seabirds` (banco, rascunhos, históricos e lixeiras), `/srv/seabirds` (sites) e a configuração já existente em `/etc/seabirds/seabirds.env`. Faça backup desses caminhos antes da atualização. As credenciais antigas continuam funcionando. Na versão 2.9.0, autor e token também podem ser gerenciados em **Configurar GitHub**, sem reiniciar o serviço; veja [GitHub Web](GITHUB-WEB.md).
 
 ## Usar um clone existente em /opt
 
@@ -55,6 +55,10 @@ Para usar HTTPS, configure `SEABIRDS_GITHUB_TOKEN` no arquivo do serviço e rein
 Ctrl+V envia a imagem ao servidor e grava no diretório físico configurado. A referência no HTML pode continuar relativa, como `../../imagens/tutorial`. A prévia e o botão Visualizar usam HTTP no acesso ao servidor Linux, carregando os recursos do site; o HTML gerado preserva o template e seus scripts.
 
 O code-server acessa o mesmo clone. Execute `bash deploy/install-web.sh` na pasta extraída para disponibilizar o editor em `/editor/` no endereço do gerador, sem túnel na máquina do usuário. Consulte [Editor Web](EDITOR-WEB.md) para atualização e detalhes dos serviços.
+
+## Exclusão completa (2.9.0)
+
+A lixeira agora oferece **Excluir definitivamente** para remover o HTML, os cards correspondentes e as imagens exclusivas, com revisão e confirmação. Consulte [Exclusão completa](LIXEIRA-PAGINAS.md). A suíte de 170 casos passou no Linux/Python 3.12 (169 aprovados e 1 ignorado) e Windows/Python 3.12 (162 aprovados e 8 ignorados).
 
 ## Validação do catálogo (2.8.0)
 

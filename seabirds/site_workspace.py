@@ -15,6 +15,7 @@ from uuid import uuid4
 from .filesystem import atomic_write, local_path
 from .github import GitHubPublisher, github_repository
 from .local_editor import LocalEditor
+from .page_deletion import PageDeletion
 from .paths import folder_access
 from .project_catalog import ProjectCatalog
 from .storage import ConflictError
@@ -55,6 +56,7 @@ class SiteWorkspace:
             else {"roots": [], "trash": [], "editor_url": "", "editor_kind": "code-server"}
         )
         self.local_editor = LocalEditor(self.directory, self.state, self.persist)
+        self.page_deletion = PageDeletion(self)
 
     def persist(self):
         atomic_write(self.catalog, json.dumps(self.state, ensure_ascii=False))
@@ -410,15 +412,7 @@ class SiteWorkspace:
                 raise ValueError("Página não encontrada na lixeira.")
             root = self.root(entry["root"])
             destination = self.page(root, entry["relative"], require_exists=False)
-            source = self.directory / "page-trash" / entry["trash_file"]
-            if (
-                source.resolve().parent != (self.directory / "page-trash").resolve()
-                or not source.name.startswith(identifier)
-                or source.is_symlink()
-            ):
-                raise ValueError("Arquivo fora da lixeira de páginas.")
-            if not source.is_file() or self.digest(source) != entry["digest"]:
-                raise ValueError("A cópia da página na lixeira foi alterada ou não existe.")
+            source = self.trash_file(entry)
             destination.parent.mkdir(parents=True, exist_ok=True)
             try:
                 with source.open("rb") as old, destination.open("xb") as new:
@@ -433,6 +427,30 @@ class SiteWorkspace:
             self.state["trash"].remove(entry)
             self.persist()
             return {"root": str(root), "path": entry["relative"]}
+
+    def trash_file(self, entry):
+        trash = self.directory / "page-trash"
+        source = trash / entry["trash_file"]
+        if (
+            trash.is_symlink()
+            or source.resolve().parent != trash.resolve()
+            or source.name != entry["id"] + Path(entry["relative"]).suffix
+            or source.is_symlink()
+        ):
+            raise ValueError("Arquivo fora da lixeira de páginas.")
+        if not source.is_file() or self.digest(source) != entry["digest"]:
+            raise ValueError("A cópia da página na lixeira foi alterada ou não existe.")
+        return source
+
+    def preview_delete_page(self, value, identifier):
+        with self.lock:
+            root = self.root(value)
+            return self.page_deletion.plan(root, identifier)["public"]
+
+    def delete_page(self, value, identifier, token):
+        with self.lock:
+            root = self.root(value)
+            return self.page_deletion.delete(root, identifier, token)
 
     def clone(self, url, destination, author_name="", author_email=""):
         defaults = self.publisher.preferences.author

@@ -58,6 +58,11 @@ class TrashPagesInput(SiteInput):
     confirm: Literal[True]
 
 
+class DeletePageInput(SiteInput):
+    token: str = Field(pattern=r"^[a-f0-9]{64}$")
+    confirm: Literal[True]
+
+
 class CloneInput(BaseModel):
     url: str = Field(min_length=1, max_length=4096)
     destination: str = Field(min_length=1, max_length=4096)
@@ -163,6 +168,16 @@ def site_router(settings, files, filesystem_access, publisher=None):
     def restore(identifier: str, request: Request):
         filesystem_access(request)
         return workspace.restore_page(identifier)
+
+    @router.post("/pages/trash/{identifier}/delete-preview")
+    def delete_preview(identifier: str, payload: SiteInput, request: Request):
+        filesystem_access(request)
+        return workspace.preview_delete_page(payload.root, identifier)
+
+    @router.post("/pages/trash/{identifier}/delete")
+    def delete(identifier: str, payload: DeletePageInput, request: Request):
+        filesystem_access(request)
+        return workspace.delete_page(payload.root, identifier, payload.token)
 
     @router.post("/pages/view")
     def view(payload: PageInput, request: Request):

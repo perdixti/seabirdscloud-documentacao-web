@@ -68,6 +68,10 @@ A [matriz de compatibilidade](docs/COMPATIBILIDADE.md) mostra onde cada recurso 
 
 As miniaturas são associadas ao rascunho e continuam disponíveis ao reabrir o aplicativo. O catálogo fica em `data/image-catalog.json` e a lixeira em `data/image-trash/`; inclua ambos na cópia do diretório de dados. Gere o HTML novamente depois de corrigir as imagens para atualizar a página exportada.
 
+## Excluir uma documentação completa
+
+Em **Site e repositórios → Lixeira de páginas**, use **Excluir definitivamente**. A revisão mostra os cadastros e as imagens exclusivas que serão removidos junto da cópia do HTML. Imagens usadas em outros arquivos do site ou por páginas ainda na lixeira são preservadas. Depois revise e publique as remoções no GitHub. Consulte [Exclusão completa](docs/LIXEIRA-PAGINAS.md).
+
 ## Catálogo de documentações
 
 Use **Adicionar ao catálogo** no editor para cadastrar o HTML gerado, com categoria, título, imagem, descrição e link. O título, o link e a primeira imagem do documento são sugeridos. Em **Site e repositórios → Catálogo de documentações**, é possível buscar, editar, mudar a categoria, remover cards e desfazer a última alteração.
@@ -129,7 +133,7 @@ Em **Site e repositórios → Configurar editor**, conecte um editor que execute
 
 No Windows, com VS Code instalado e disponível no PATH, use **Iniciar VS Code Web neste computador**. A interface apresenta os [termos do Visual Studio Code Server](https://aka.ms/vscode-server-license); só inicia após sua aceitação. O processo usa `127.0.0.1:8765`, autenticação por token e dados separados em `data/vscode-*`. A primeira execução pode baixar componentes do VS Code. A API de inicialização só aceita acesso pela própria máquina. O gerador exige VS Code 1.128.1 ou mais recente; mantenha-o atualizado. Fechar a aba do navegador mantém o processo em execução; reiniciar o computador o encerra, e o botão pode iniciá-lo novamente. Os testes desta entrega simularam a inicialização, sem aceitar os termos por você.
 
-No Debian/LXC ou na EC2, o editor pode ficar hospedado junto do gerador. Atualize para a versão 2.8.0 e execute `bash deploy/install-web.sh` no servidor. Depois, use **Site e repositórios → Editor do site**. O editor abre no mesmo endereço, em `/editor/`, acessando a pasta selecionada do servidor. Ele inicia automaticamente com o servidor e usa senha própria; o computador do usuário só precisa do navegador.
+No Debian/LXC ou na EC2, o editor pode ficar hospedado junto do gerador. Atualize para a versão 2.9.0 e execute `bash deploy/install-web.sh` no servidor. Depois, use **Site e repositórios → Editor do site**. O editor abre no mesmo endereço, em `/editor/`, acessando a pasta selecionada do servidor. Ele inicia automaticamente com o servidor e usa senha própria; o computador do usuário só precisa do navegador.
 
 O modo de desenvolvimento mantém HTTP e a porta pública 8000. O proxy encaminha o gerador para a porta interna 8001 e o editor para 8765, ambas em loopback. O link é relativo e também funciona no IP do LXC, sem fixar o DNS da EC2. A configuração de publicação Git continua sendo feita no gerador, com revisão antes do commit/push.
 

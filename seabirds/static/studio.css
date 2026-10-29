@@ -1625,6 +1625,13 @@ dialog::backdrop {
   accent-color: var(--accent);
   flex-shrink: 0;
 }
+#site-trash-list .asset-row {
+  flex-wrap: wrap;
+}
+#site-delete-images, #site-delete-preserved-list {
+  max-height: 180px;
+  overflow: auto;
+}
 .asset-row > img {
   width: 54px;
   height: 42px;

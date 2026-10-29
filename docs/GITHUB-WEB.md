@@ -1,6 +1,6 @@
 # Nome, e-mail e token pelo gerenciamento web
 
-Na versão 2.8.0, use **Site e repositórios → Configurar GitHub**. O mesmo formulário está disponível em **Clonar repositório** e na revisão de publicação. A configuração é compartilhada pelos clones, publicações e consultas de pipeline, sem reiniciar o servidor.
+Na versão 2.9.0, use **Site e repositórios → Configurar GitHub**. O mesmo formulário está disponível em **Clonar repositório** e na revisão de publicação. A configuração é compartilhada pelos clones, publicações e consultas de pipeline, sem reiniciar o servidor.
 
 Preencha o nome e o e-mail que deseja usar nos commits. Cole o token no campo **Token do GitHub (segredo)** e clique em **Salvar configurações**. Não cole o texto de exemplo `COLE_O_TOKEN_REAL_AQUI`; informe o token gerado na sua conta.
 
@@ -29,7 +29,7 @@ Crie um token fine-grained restrito a `perdixti/SeaBirdsCloud-site`, com **Conte
 
 ## Atualizar o servidor existente
 
-Extraia o pacote 2.8.0 numa pasta nova no servidor. Entre na pasta `SeaBirdsCloud` extraída e, como root na console do servidor, execute:
+Extraia o pacote 2.9.0 numa pasta nova no servidor. Entre na pasta `SeaBirdsCloud` extraída e, como root na console do servidor, execute:
 
 ```bash
 bash deploy/update-app.sh
